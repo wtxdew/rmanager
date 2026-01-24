@@ -15,7 +15,7 @@ build:
 	@$(GO_ENV) go build $(GO_FLAGS) -o $(APP_NAME) cmd/server/main.go
 
 terminate:
-		@echo "Starting remote process..."
+		@echo "Terminating remote process..."
 		@-pgrep -f "ssh.*$(APP_NAME)" | xargs kill -9 2>/dev/null || true
 		@-ssh $(DEVICE_USER)@$(DEVICE_IP) "ps | grep '$(APP_NAME)' | grep -v 'grep' | awk '{print $$1}' | xargs kill -9 2>/dev/null || true"
 
