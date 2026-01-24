@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"rmanager/internal/config"
-	"rmanager/internal/handlers"
+	"rmanager/internal/router"
 )
 
 func main() {
@@ -34,21 +34,10 @@ func main() {
 			cfg.DeviceSpec.PPI)
 	}
 
-	// Setup routes
-	mux := http.NewServeMux()
-
-	// Serve static frontend - using filesystem for now (will embed later)
-	mux.Handle("/", http.FileServer(http.Dir("./frontend")))
-
-	// API endpoints
-	mux.HandleFunc("/api/status", handlers.GetStatus(cfg))
-	mux.HandleFunc("/api/upload-suspend", handlers.UploadSuspendScreen(cfg))
-	mux.HandleFunc("/api/current-suspend", handlers.GetCurrentSuspend(cfg))
-	mux.HandleFunc("/api/upload-doc", handlers.UploadDocument(cfg))
-	mux.HandleFunc("/api/restart-xochitl", handlers.RestartXochitl(cfg))
-	mux.HandleFunc("/api/ssh", handlers.HandleWebSSH)
+	// Setup router with middleware
+	r := router.Setup(cfg)
 
 	addr := ":" + cfg.Port
 	log.Printf("[INFO] Server starting on http://%s%s", cfg.Host, addr)
-	log.Fatal(http.ListenAndServe(addr, mux))
+	log.Fatal(http.ListenAndServe(addr, r))
 }
