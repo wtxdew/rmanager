@@ -18,8 +18,8 @@ func Setup(cfg *config.Config) http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.CORS().Handler)
 
-	// Serve static frontend files
-	r.Handle("/*", http.FileServer(http.Dir("./frontend")))
+	// Serve static frontend files from web/ directory
+	r.Handle("/*", http.FileServer(http.Dir("./web")))
 
 	// API routes
 	r.Route("/api", func(r chi.Router) {
