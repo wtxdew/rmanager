@@ -17,11 +17,15 @@ build:
 terminate:
 		@echo "Terminating remote process..."
 		@-pgrep -f "ssh.*$(APP_NAME)" | xargs kill -9 2>/dev/null || true
-		@-ssh $(DEVICE_USER)@$(DEVICE_IP) "ps | grep '$(APP_NAME)' | grep -v 'grep' | awk '{print $$1}' | xargs kill -9 2>/dev/null || true"
+		@echo "Terminating remote process..."
+		@ssh $(DEVICE_USER)@$(DEVICE_IP) "ps | grep '$(APP_NAME)' | grep -v 'grep' | awk '{print \$$1}' | xargs kill -9 2>/dev/null || true"
 
 push: terminate
 		@echo "Transferring to device..."
 		@scp ./$(APP_NAME) $(DEVICE_USER)@$(DEVICE_IP):$(REMOTE_PATH)
+		@echo "Transferring web files..."
+		@ssh $(DEVICE_USER)@$(DEVICE_IP) "mkdir -p /home/root/web"
+		@scp -r ./web/* $(DEVICE_USER)@$(DEVICE_IP):/home/root/web/
 
 run: push
 		@ssh $(DEVICE_USER)@$(DEVICE_IP) "chmod +x $(REMOTE_PATH) && $(REMOTE_PATH)" &
@@ -35,7 +39,7 @@ clean:
 		@echo "Cleaned build artifacts."
 
 kill-remote:
-		@ssh $(DEVICE_USER)@$(DEVICE_IP) "ps | grep '$APP_NAME' | grep -v 'grep' | awk '{print $$1}' | xargs kill -9 2>/dev/null || true"
+		@ssh $(DEVICE_USER)@$(DEVICE_IP) "ps | grep '$(APP_NAME)' | grep -v 'grep' | awk '{print \$$1}' | xargs kill -9 2>/dev/null || true"
 		@echo "Remote app terminated."
 
 # Local development targets

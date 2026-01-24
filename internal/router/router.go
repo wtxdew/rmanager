@@ -18,10 +18,7 @@ func Setup(cfg *config.Config) http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.CORS().Handler)
 
-	// Serve static frontend files from web/ directory
-	r.Handle("/*", http.FileServer(http.Dir("./web")))
-
-	// API routes
+	// API routes (must be before static files)
 	r.Route("/api", func(r chi.Router) {
 		// System endpoints
 		r.Get("/status", handlers.GetStatus(cfg))
@@ -37,6 +34,11 @@ func Setup(cfg *config.Config) http.Handler {
 		// WebSSH endpoint
 		r.Get("/ssh", handlers.HandleWebSSH)
 	})
+
+	// Serve static frontend files from web/ directory
+	// This must be AFTER API routes
+	fs := http.FileServer(http.Dir("./web"))
+	r.Handle("/*", fs)
 
 	return r
 }

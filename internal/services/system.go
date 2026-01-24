@@ -20,7 +20,7 @@ func GetSystemInfo(cfg *config.Config) (*models.SystemInfo, error) {
 	return &models.SystemInfo{
 		Uptime:  strings.TrimSpace(uptimePart),
 		Storage: storageStr,
-		Model:   string(cfg.DeviceSpec.Model),
+		Model:   cfg.GetDeviceDisplayName(),
 	}, nil
 }
 

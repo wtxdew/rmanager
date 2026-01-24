@@ -25,15 +25,26 @@ const app = {
     // Switch between tabs
     switchTab(tab) {
         // Hide all tabs
-        document.querySelectorAll('[id^="tab-"]').forEach(el => {
-            el.style.display = 'none';
+        document.querySelectorAll('.tab-content').forEach(el => {
+            el.classList.remove('active');
+        });
+
+        // Remove active class from all nav items
+        document.querySelectorAll('.nav-item').forEach(el => {
+            el.classList.remove('active');
         });
 
         // Show selected tab
         const tabEl = document.getElementById('tab-' + tab);
         if (tabEl) {
-            tabEl.style.display = 'block';
+            tabEl.classList.add('active');
             this.currentTab = tab;
+        }
+
+        // Set active nav item
+        const navItem = document.querySelector(`.nav-item[data-tab="${tab}"]`);
+        if (navItem) {
+            navItem.classList.add('active');
         }
     }
 };
