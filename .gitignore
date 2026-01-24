@@ -1,1 +1,16 @@
 rm-server
+
+# Test data (keep directory structure, ignore content)
+testdata/xochitl/*.pdf
+testdata/xochitl/*.epub
+testdata/xochitl/*.metadata
+testdata/xochitl/*.content
+testdata/xochitl/*.cache/
+testdata/xochitl/*.highlights/
+testdata/xochitl/*.thumbnails/
+testdata/books/*
+testdata/screen/suspended.png
+
+# But keep README
+!testdata/README.md
+!testdata/*/.gitkeep

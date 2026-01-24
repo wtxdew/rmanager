@@ -12,7 +12,7 @@ all: deploy
 
 build:
 	@echo "Building $(APP_NAME)..."
-	@$(GO_ENV) go build $(GO_FLAGS) -o $(APP_NAME) main.go
+	@$(GO_ENV) go build $(GO_FLAGS) -o $(APP_NAME) cmd/server/main.go
 
 terminate:
 		@echo "Starting remote process..."
@@ -36,4 +36,25 @@ clean:
 
 kill-remote:
 		@ssh $(DEVICE_USER)@$(DEVICE_IP) "ps | grep '$APP_NAME' | grep -v 'grep' | awk '{print $$1}' | xargs kill -9 2>/dev/null || true"
-		@echo "Remote app terminated。"
+		@echo "Remote app terminated."
+
+# Local development targets
+.PHONY: dev dev-setup test-local clean-test
+
+dev-setup:
+	@echo "Setting up local development environment..."
+	@chmod +x scripts/dev.sh scripts/test-setup.sh
+	@./scripts/test-setup.sh
+
+dev: dev-setup
+	@./scripts/dev.sh
+
+test-local:
+	@echo "Running local tests..."
+	@DEV_MODE=true go test ./... -v
+
+clean-test:
+	@echo "Cleaning test data..."
+	@rm -rf testdata/xochitl/*
+	@rm -rf testdata/books/*
+	@echo "Test data cleaned."
