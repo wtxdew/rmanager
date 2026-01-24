@@ -80,9 +80,9 @@ func Load() *Config {
 		// reMarkable device environment
 		cfg.Host = "10.11.99.1"
 		cfg.Port = "8080"
-		cfg.ScreenPath = "/home/root/test/"
-		cfg.BooksPath = "/home/root/books/"
-		cfg.XochitlPath = "/home/root/test/xochitl"
+		cfg.ScreenPath = "/usr/share/remarkable/"
+		cfg.BooksPath = "/home/root/.local/share/remarkable/xochitl/"
+		cfg.XochitlPath = "/home/root/.local/share/remarkable/xochitl"
 
 		// Detect actual device model
 		cfg.DeviceSpec = detectDevice()

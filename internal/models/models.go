@@ -30,6 +30,22 @@ type DocumentFile struct {
 	Type         string `json:"type"`
 	Size         int64  `json:"size"`
 	ModifiedTime string `json:"modifiedTime"`
+	Pinned       bool   `json:"pinned"`
+	Parent       string `json:"parent"`
+}
+
+// DocumentInfo represents detailed document information
+type DocumentInfo struct {
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	Type         string `json:"type"`
+	Size         int64  `json:"size"`
+	Path         string `json:"path"`
+	ModifiedTime string `json:"modifiedTime"`
+	Pinned       bool   `json:"pinned"`
+	Parent       string `json:"parent"`
+	PageCount    int    `json:"pageCount"`
+	Deleted      bool   `json:"deleted"`
 }
 
 // APIResponse represents a standard API response
@@ -37,4 +53,13 @@ type APIResponse struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
+}
+
+// MonitorData represents real-time monitoring metrics
+type MonitorData struct {
+	CPU       float64 `json:"cpu"`        // CPU usage percentage
+	Memory    float64 `json:"memory"`     // Memory usage percentage
+	MemUsed   int64   `json:"memUsed"`    // Memory used in MB
+	MemTotal  int64   `json:"memTotal"`   // Total memory in MB
+	Timestamp int64   `json:"timestamp"`  // Unix timestamp
 }

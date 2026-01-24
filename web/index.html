@@ -27,6 +27,10 @@
                     <span class="nav-icon">📚</span>
                     <span class="nav-label">Documents</span>
                 </a>
+                <a href="#" class="nav-item" data-tab="files" onclick="app.switchTab('files'); return false;">
+                    <span class="nav-icon">📁</span>
+                    <span class="nav-label">File Manager</span>
+                </a>
                 <a href="#" class="nav-item" data-tab="terminal" onclick="app.switchTab('terminal'); return false;">
                     <span class="nav-icon">💻</span>
                     <span class="nav-label">Terminal</span>
@@ -55,6 +59,24 @@
                             <td id="sys-storage">-</td>
                         </tr>
                     </table>
+                </article>
+
+                <!-- Real-time Monitoring -->
+                <article>
+                    <header>System Monitoring</header>
+                    <div class="monitor-stats">
+                        <div class="stat-card">
+                            <div class="stat-label">CPU Usage</div>
+                            <div class="stat-value" id="cpu-value">-</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Memory Usage</div>
+                            <div class="stat-value" id="mem-value">-</div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="monitor-chart"></canvas>
+                    </div>
                 </article>
             </section>
 
@@ -121,6 +143,63 @@
                 </article>
             </section>
 
+            <!-- File Manager Tab -->
+            <section id="tab-files" class="tab-content">
+                <article>
+                    <header>
+                        File Manager
+                        <button onclick="fileManager.refresh()" class="secondary">🔄 Refresh</button>
+                    </header>
+
+                    <!-- Search Bar -->
+                    <div class="search-bar">
+                        <input type="text" id="search-input" placeholder="Search documents..."
+                               oninput="fileManager.search(this.value)">
+                        <div class="filter-controls">
+                            <select id="type-filter" onchange="fileManager.applyFilters()">
+                                <option value="">All Types</option>
+                                <option value="pdf">PDF</option>
+                                <option value="epub">EPUB</option>
+                            </select>
+                            <select id="sort-by" onchange="fileManager.applySort()">
+                                <option value="time-desc">Newest First</option>
+                                <option value="time-asc">Oldest First</option>
+                                <option value="name-asc">Name (A-Z)</option>
+                                <option value="name-desc">Name (Z-A)</option>
+                                <option value="size-desc">Largest First</option>
+                                <option value="size-asc">Smallest First</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- File List -->
+                    <div class="file-list-container">
+                        <table class="file-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Size</th>
+                                    <th>Modified</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="file-list">
+                                <tr>
+                                    <td colspan="5" class="loading">Loading documents...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="file-stats">
+                        <span id="file-count">0 documents</span>
+                        <span id="total-size">0 MB</span>
+                    </div>
+                </article>
+            </section>
+
             <!-- Terminal Tab -->
             <section id="tab-terminal" class="tab-content">
                 <article>
@@ -133,8 +212,11 @@
     </div>
 
     <!-- Scripts -->
+    <script src="/lib/chart.min.js"></script>
     <script src="/js/utils.js"></script>
     <script src="/js/app.js"></script>
     <script src="/js/upload.js"></script>
+    <script src="/js/filemanager.js"></script>
+    <script src="/js/monitor.js"></script>
 </body>
 </html>

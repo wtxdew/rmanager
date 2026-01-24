@@ -24,6 +24,11 @@ const app = {
 
     // Switch between tabs
     switchTab(tab) {
+        // Stop monitoring when leaving dashboard
+        if (this.currentTab === 'dashboard' && typeof monitorModule !== 'undefined') {
+            monitorModule.stopMonitoring();
+        }
+
         // Hide all tabs
         document.querySelectorAll('.tab-content').forEach(el => {
             el.classList.remove('active');
@@ -45,6 +50,18 @@ const app = {
         const navItem = document.querySelector(`.nav-item[data-tab="${tab}"]`);
         if (navItem) {
             navItem.classList.add('active');
+        }
+
+        // Load content for specific tabs
+        if (tab === 'files' && typeof fileManager !== 'undefined') {
+            fileManager.load();
+        } else if (tab === 'dashboard' && typeof monitorModule !== 'undefined') {
+            // Reinitialize monitoring when returning to dashboard
+            if (!monitorModule.chart) {
+                monitorModule.init();
+            } else {
+                monitorModule.startMonitoring();
+            }
         }
     }
 };

@@ -22,6 +22,7 @@ func Setup(cfg *config.Config) http.Handler {
 	r.Route("/api", func(r chi.Router) {
 		// System endpoints
 		r.Get("/status", handlers.GetStatus(cfg))
+		r.Get("/monitor", handlers.GetMonitorData(cfg))
 
 		// Suspend screen endpoints
 		r.Post("/upload-suspend", handlers.UploadSuspendScreen(cfg))
@@ -30,6 +31,13 @@ func Setup(cfg *config.Config) http.Handler {
 		// Document endpoints
 		r.Post("/upload-doc", handlers.UploadDocument(cfg))
 		r.Post("/restart-xochitl", handlers.RestartXochitl(cfg))
+
+		// File manager endpoints
+		r.Get("/files", handlers.ListDocuments(cfg))
+		r.Get("/files/search", handlers.SearchDocuments(cfg))
+		r.Get("/files/info", handlers.GetDocumentInfo(cfg))
+		r.Delete("/files/delete", handlers.DeleteDocument(cfg))
+		r.Put("/files/rename", handlers.RenameDocument(cfg))
 
 		// WebSSH endpoint
 		r.Get("/ssh", handlers.HandleWebSSH)
