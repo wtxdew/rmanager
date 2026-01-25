@@ -21,12 +21,10 @@ export const SuspendScreenManager = () => {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string>('');
   const [currentScreenUrl, setCurrentScreenUrl] = useState(suspendScreenAPI.getCurrentImage());
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processFile = (file: File) => {
     if (!file.type.match(/^image\/(png|jpeg|jpg)$/)) {
       setMessage('Please select a PNG or JPEG image');
       return;
@@ -40,21 +38,45 @@ export const SuspendScreenManager = () => {
     reader.readAsDataURL(file);
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
+  };
+
   const handleUploadClick = () => {
-    fileInputRef.current?.click();
+    if (!croppedBlob) {
+      fileInputRef.current?.click();
+    }
   };
 
   const handleCropComplete = (blob: Blob) => {
     setCroppedBlob(blob);
     setIsModalOpen(false);
-    setMessage('Image cropped. Click "Sync to Device" to upload.');
+    setMessage('Image ready to upload.');
   };
 
-  const handleUpload = async () => {
-    if (!croppedBlob) {
-      setMessage('Please crop an image first');
-      return;
-    }
+  const handleUpload = async (e?: React.MouseEvent) => {
+    e?.stopPropagation(); // Prevent triggering the file selector if clicking the upload button
+
+    if (!croppedBlob) return;
 
     try {
       setUploading(true);
@@ -78,6 +100,13 @@ export const SuspendScreenManager = () => {
     }
   };
 
+  const handleClearPreview = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCroppedBlob(null);
+    setMessage('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   return (
     <>
       {selectedImage && (
@@ -92,9 +121,10 @@ export const SuspendScreenManager = () => {
         />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
-        <div className="lg:col-span-1 flex flex-col h-full">
-          <Card title="Active Screen Preview" className="flex-1 flex flex-col" >
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
+        {/* Left Column: Active Screen Preview */}
+        <div className="flex flex-col h-full">
+          <Card title="Active Screen Preview" className="flex-1 flex flex-col">
             <div className="flex-1 bg-slate-100 rounded border border-slate-200 relative overflow-hidden flex items-center justify-center">
               <img
                 src={currentScreenUrl}
@@ -106,24 +136,24 @@ export const SuspendScreenManager = () => {
                 }}
               />
             </div>
-
-            <div className="mt-4 space-y-2">
-              <button
-                onClick={handleUpload}
-                disabled={!croppedBlob || uploading}
-                className="w-full py-2 text-sm font-medium bg-slate-800 text-white rounded hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {uploading ? 'Uploading...' : 'Send to Device'}
-              </button>
+            <div className="mt-4 text-center text-slate-500 text-sm">
+              Current active suspend screen on device
             </div>
           </Card>
         </div>
 
-        <div className="lg:col-span-1 space-y-6 flex flex-col h-full">
-          <Card title="Upload New Screen">
+        {/* Right Column: Upload / Preview */}
+        <div className="flex flex-col h-full">
+          <Card title="Upload New Screen" className="flex-1 flex flex-col">
             <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
               onClick={handleUploadClick}
-              className="border-2 border-dashed border-slate-300 rounded-lg p-8 flex flex-col items-center justify-center text-center hover:bg-slate-50 transition-colors cursor-pointer group"
+              className={`flex-1 border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center text-center transition-all duration-200 relative
+                ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-slate-300 hover:bg-slate-50'}
+                ${!croppedBlob ? 'cursor-pointer' : ''}
+              `}
             >
               <input
                 ref={fileInputRef}
@@ -132,15 +162,70 @@ export const SuspendScreenManager = () => {
                 onChange={handleFileSelect}
                 className="hidden"
               />
-              <div className="p-3 bg-slate-100 rounded-full mb-3 group-hover:bg-slate-200 transition-colors">
-                <Upload className="w-6 h-6 text-slate-600" />
-              </div>
-              <h3 className="text-base font-medium text-slate-700">Drag & drop or Click to Upload</h3>
-              <p className="text-slate-500 text-xs mt-1">PNG/JPG (Opens Editor)</p>
+
+              {/* Drag Overlay */}
+              {isDragging && (
+                <div className="absolute inset-0 bg-blue-50/90 flex flex-col items-center justify-center z-10 rounded-lg">
+                  <Upload className="w-12 h-12 text-blue-500 mb-4 animate-bounce" />
+                  <p className="text-blue-600 font-medium text-lg">Drop to upload</p>
+                </div>
+              )}
+
+              {croppedBlob ? (
+                // Preview State
+                <div className="w-full h-full flex flex-col items-center relative z-0">
+                  <div className="flex-1 w-full flex items-center justify-center overflow-hidden mb-4">
+                    <div className="relative aspect-[9/16] h-full max-h-[400px] shadow-md">
+                      <img
+                        src={URL.createObjectURL(croppedBlob)}
+                        alt="Cropped preview"
+                        className="w-full h-full object-cover rounded"
+                      />
+                      <button
+                        onClick={handleClearPreview}
+                        className="absolute -top-2 -right-2 bg-white text-slate-500 rounded-full p-1 shadow hover:bg-red-50 hover:text-red-500 transition-colors"
+                        title="Clear preview"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="w-full space-y-3">
+                    <button
+                      onClick={handleUpload}
+                      disabled={uploading}
+                      className="w-full py-3 text-sm font-bold bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2"
+                    >
+                      {uploading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4" />
+                          Sync to Device
+                        </>
+                      )}
+                    </button>
+                    <p className="text-xs text-slate-400">Clicking sync will replace the device's current suspend screen</p>
+                  </div>
+                </div>
+              ) : (
+                // Empty State
+                <>
+                  <div className="p-4 bg-slate-100 rounded-full mb-4 group-hover:bg-slate-200 transition-colors">
+                    <Upload className="w-8 h-8 text-slate-600" />
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-700 mb-2">Drag & drop or Click to Upload</h3>
+                  <p className="text-slate-500 text-sm">Support PNG, JPG</p>
+                </>
+              )}
             </div>
 
             {message && (
-              <div className={`mt-4 p-3 rounded text-sm ${message.includes('failed') || message.includes('error')
+              <div className={`mt-4 p-3 rounded text-sm flex items-center gap-2 ${message.includes('failed') || message.includes('error')
                 ? 'bg-red-50 text-red-700'
                 : 'bg-blue-50 text-blue-700'
                 }`}>
@@ -148,20 +233,7 @@ export const SuspendScreenManager = () => {
               </div>
             )}
           </Card>
-
-          {croppedBlob && (
-            <Card title="Preview">
-              <div className="aspect-[9/16] max-w-sm mx-auto bg-slate-100 rounded border border-slate-200 overflow-hidden">
-                <img
-                  src={URL.createObjectURL(croppedBlob)}
-                  alt="Cropped preview"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </Card>
-          )}
         </div>
-
       </div>
     </>
   );
