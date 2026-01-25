@@ -23,7 +23,7 @@ import {
   History,
   ZoomIn,
   ZoomOut,
-  X,
+
   Check,
   ArrowLeft
 } from 'lucide-react';

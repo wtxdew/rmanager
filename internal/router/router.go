@@ -43,10 +43,18 @@ func Setup(cfg *config.Config) http.Handler {
 		r.Get("/ssh", handlers.HandleWebSSH)
 	})
 
-	// Serve static frontend files from web/ directory
+	// Serve static frontend files from React build (web-react/dist/)
 	// This must be AFTER API routes
-	fs := http.FileServer(http.Dir("./web"))
-	r.Handle("/*", fs)
+	spaHandler := http.FileServer(http.Dir("./web-react/dist"))
+	r.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// For SPA routing: if file doesn't exist, serve index.html
+		if _, err := http.Dir("./web-react/dist").Open(r.URL.Path); err != nil {
+			// File not found, serve index.html for SPA routing
+			http.ServeFile(w, r, "./web-react/dist/index.html")
+			return
+		}
+		spaHandler.ServeHTTP(w, r)
+	}))
 
 	return r
 }
