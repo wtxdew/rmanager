@@ -9,7 +9,6 @@ import (
 	"rmanager/internal/services"
 )
 
-// GetMonitorData returns current monitoring metrics
 func GetMonitorData(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		data, err := services.GetMonitorData(cfg)

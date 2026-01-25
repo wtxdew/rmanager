@@ -29,8 +29,6 @@ func UploadSuspendScreen(cfg *config.Config) http.HandlerFunc {
 
 		// Use platform-safe mount operation
 		platform.Mount(cfg, "rw")
-
-		// Ensure directory exists (needed for development mode)
 		os.MkdirAll(cfg.ScreenPath, 0755)
 
 		dst, err := os.Create(filepath.Join(cfg.ScreenPath, "suspended.png"))
@@ -59,3 +57,5 @@ func GetCurrentSuspend(cfg *config.Config) http.HandlerFunc {
 		http.ServeFile(w, r, filepath.Join(cfg.ScreenPath, "suspended.png"))
 	}
 }
+
+// GetHistorySuspendList serves the history suspend screen image list

@@ -9,6 +9,7 @@ import (
 	"golang.org/x/image/draw"
 )
 
+// Deprecated: Use frontend to crop and scale the image
 // ProcessImage processes an image to fit the target device screen
 // If the image already matches the target dimensions exactly, use it as-is
 // Otherwise, scale it to exact dimensions (assumes frontend has already cropped)

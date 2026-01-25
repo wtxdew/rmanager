@@ -3,10 +3,11 @@ package router
 import (
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
 	"rmanager/internal/config"
 	"rmanager/internal/handlers"
 	"rmanager/internal/middleware"
+
+	"github.com/go-chi/chi/v5"
 )
 
 // Setup configures and returns the HTTP router with all routes and middleware

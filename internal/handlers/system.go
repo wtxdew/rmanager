@@ -8,7 +8,6 @@ import (
 	"rmanager/internal/services"
 )
 
-// GetStatus handles system status requests
 func GetStatus(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		info, err := services.GetSystemInfo(cfg)

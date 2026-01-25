@@ -36,7 +36,6 @@ func GetMonitorData(cfg *config.Config) (*models.MonitorData, error) {
 	}, nil
 }
 
-// getCPUUsage reads CPU usage from /proc/stat
 func getCPUUsage() float64 {
 	file, err := os.Open("/proc/stat")
 	if err != nil {
