@@ -90,18 +90,8 @@
                             <img id="current-suspend" src="/api/current-suspend" alt="Current suspend screen">
                         </div>
                         <div>
-                            <label>Preview & Crop</label>
-                            <div id="crop-container" style="display:none;">
-                                <canvas id="crop-canvas"></canvas>
-                                <div class="crop-zoom-controls">
-                                    <button onclick="uploadModule.zoomOut()" title="Zoom Out">−</button>
-                                    <input type="range" id="zoom-slider" min="100" max="300" value="100"
-                                           oninput="uploadModule.setZoom(this.value)">
-                                    <button onclick="uploadModule.zoomIn()" title="Zoom In">+</button>
-                                    <button onclick="uploadModule.resetCrop()" class="secondary">Reset</button>
-                                </div>
-                            </div>
-                            <img id="preview-suspend" src="" alt="Select image to preview">
+                            <label>Preview</label>
+                            <img id="preview-suspend" src="" alt="Select image to preview" style="display:none;">
                         </div>
                     </div>
 

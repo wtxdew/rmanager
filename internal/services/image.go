@@ -10,7 +10,8 @@ import (
 )
 
 // ProcessImage processes an image to fit the target device screen
-// It centers and crops the image to match the aspect ratio, then scales to target dimensions
+// If the image already matches the target dimensions exactly, use it as-is
+// Otherwise, scale it to exact dimensions (assumes frontend has already cropped)
 func ProcessImage(src io.Reader, targetWidth, targetHeight int) (image.Image, error) {
 	img, _, err := image.Decode(src)
 	if err != nil {
@@ -20,23 +21,14 @@ func ProcessImage(src io.Reader, targetWidth, targetHeight int) (image.Image, er
 	srcBounds := img.Bounds()
 	srcW, srcH := srcBounds.Dx(), srcBounds.Dy()
 
-	// Calculate crop rectangle to maintain target aspect ratio
-	var cropRect image.Rectangle
-	if float64(srcW)/float64(srcH) > float64(targetWidth)/float64(targetHeight) {
-		// Source is wider - crop width
-		newW := srcH * targetWidth / targetHeight
-		offset := (srcW - newW) / 2
-		cropRect = image.Rect(offset, 0, offset+newW, srcH)
-	} else {
-		// Source is taller - crop height
-		newH := srcW * targetHeight / targetWidth
-		offset := (srcH - newH) / 2
-		cropRect = image.Rect(0, offset, srcW, offset+newH)
+	// If image is already the exact target size, return it directly
+	if srcW == targetWidth && srcH == targetHeight {
+		return img, nil
 	}
 
-	// Scale to target dimensions using Catmull-Rom interpolation
+	// Scale to exact target dimensions (frontend handles cropping)
 	dst := image.NewRGBA(image.Rect(0, 0, targetWidth, targetHeight))
-	draw.CatmullRom.Scale(dst, dst.Bounds(), img, cropRect, draw.Over, nil)
+	draw.CatmullRom.Scale(dst, dst.Bounds(), img, img.Bounds(), draw.Over, nil)
 
 	return dst, nil
 }

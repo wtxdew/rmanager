@@ -2,9 +2,11 @@
 
 const uploadModule = {
     currentFile: null,
+    originalImage: null,
     cropData: null,
     imageLibrary: [],
     zoom: 100,
+    croppedBlob: null,
 
     // Initialize drag and drop
     init() {
@@ -92,7 +94,6 @@ const uploadModule = {
     // Preview suspend screen image before upload
     previewSuspend(input) {
         const preview = document.getElementById('preview-suspend');
-        const cropContainer = document.getElementById('crop-container');
         const statusEl = 'suspend-status';
 
         if (!input || !input.files[0]) {
@@ -101,6 +102,7 @@ const uploadModule = {
         }
 
         this.currentFile = input.files[0];
+        this.croppedBlob = null; // Reset cropped data
 
         // Check file type
         if (!this.currentFile.type.match(/^image\/(png|jpeg|jpg)$/)) {
@@ -110,115 +112,265 @@ const uploadModule = {
 
         const reader = new FileReader();
         reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                this.initCropCanvas(img);
-                preview.style.display = 'none';
-                cropContainer.style.display = 'block';
-                utils.showStatus(statusEl, 'Drag to position, use zoom controls to adjust size', false);
+            // Load image and auto-open editor
+            this.originalImage = new Image();
+            this.originalImage.onload = () => {
+                // Auto-open crop editor
+                this.openCropEditor();
             };
-            img.src = e.target.result;
+            this.originalImage.src = e.target.result;
         };
         reader.readAsDataURL(this.currentFile);
     },
 
-    // Initialize crop canvas with zoom support
+    // Open crop editor modal (Twitter/X style)
+    openCropEditor() {
+        if (!this.originalImage) {
+            utils.showStatus('suspend-status', 'Please select an image first', true);
+            return;
+        }
+
+        // Create modal
+        const modal = document.createElement('div');
+        modal.id = 'crop-modal';
+        modal.className = 'crop-modal';
+        modal.innerHTML = `
+            <div class="crop-modal-content">
+                <div class="crop-modal-body">
+                    <canvas id="modal-crop-canvas"></canvas>
+                    <div class="crop-controls">
+                        <button onclick="uploadModule.zoomOut()">−</button>
+                        <input type="range" id="modal-zoom-slider" min="50" max="200" value="100"
+                               oninput="uploadModule.setZoom(this.value)">
+                        <button onclick="uploadModule.zoomIn()">+</button>
+                    </div>
+                </div>
+                <div class="crop-modal-footer">
+                    <button onclick="uploadModule.closeCropEditor()" class="secondary">取消</button>
+                    <button onclick="uploadModule.applyCrop()">套用</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Initialize crop canvas
+        setTimeout(() => this.initCropCanvas(this.originalImage), 100);
+    },
+
+    // Close crop editor
+    closeCropEditor() {
+        const modal = document.getElementById('crop-modal');
+        if (modal) {
+            modal.remove();
+        }
+        this.cropData = null;
+    },
+
+    // Apply crop and update preview
+    async applyCrop() {
+        if (!this.cropData) return;
+
+        const { img, cropBox, displayWidth, displayHeight } = this.cropData;
+
+        // Create a new canvas for the cropped result at exact device dimensions
+        const outputCanvas = document.createElement('canvas');
+        outputCanvas.width = 954;   // Portrait width
+        outputCanvas.height = 1696;  // Portrait height
+        const outputCtx = outputCanvas.getContext('2d');
+
+        // Calculate source rectangle in original image coordinates
+        const scaleX = img.width / displayWidth;
+        const scaleY = img.height / displayHeight;
+
+        const srcX = cropBox.x * scaleX;
+        const srcY = cropBox.y * scaleY;
+        const srcWidth = cropBox.width * scaleX;
+        const srcHeight = cropBox.height * scaleY;
+
+        // Draw cropped portion to output canvas
+        outputCtx.drawImage(
+            img,
+            srcX, srcY, srcWidth, srcHeight,
+            0, 0, outputCanvas.width, outputCanvas.height
+        );
+
+        // Get cropped image as blob
+        this.croppedBlob = await new Promise(resolve => outputCanvas.toBlob(resolve, 'image/png'));
+
+        // Update preview with cropped image
+        const preview = document.getElementById('preview-suspend');
+        preview.src = URL.createObjectURL(this.croppedBlob);
+        preview.style.display = 'block';
+
+        utils.showStatus('suspend-status', 'Crop applied! Ready to upload.', false);
+        this.closeCropEditor();
+    },
+
+    // Initialize crop canvas with zoom support (X/Twitter style - show full image with crop box)
     initCropCanvas(img) {
-        const canvas = document.getElementById('crop-canvas');
+        const canvas = document.getElementById('modal-crop-canvas');
+        if (!canvas) return;
+
         const ctx = canvas.getContext('2d');
 
-        // Set canvas size to match target aspect ratio (reMarkable screen)
-        const targetRatio = 1620 / 2160; // RMPP aspect ratio
-        let canvasWidth = 500;
-        let canvasHeight = canvasWidth / targetRatio;
+        // Target crop dimensions - PORTRAIT orientation
+        const targetWidth = 954;
+        const targetHeight = 1696;
+        const targetRatio = targetWidth / targetHeight;
 
-        canvas.width = canvasWidth;
-        canvas.height = canvasHeight;
+        // Canvas size - fit entire image with padding
+        const maxWidth = 500;
+        const maxHeight = 700;
 
-        // Calculate initial view area (100% zoom)
+        // Scale image to fit in canvas (contain, not cover)
         const imgRatio = img.width / img.height;
-        let viewWidth, viewHeight, viewX, viewY;
+        let displayWidth, displayHeight;
 
-        if (imgRatio > targetRatio) {
-            // Image is wider - fit by height
-            viewHeight = img.height;
-            viewWidth = viewHeight * targetRatio;
-            viewX = (img.width - viewWidth) / 2;
-            viewY = 0;
+        if (imgRatio > maxWidth / maxHeight) {
+            displayWidth = maxWidth;
+            displayHeight = maxWidth / imgRatio;
         } else {
-            // Image is taller - fit by width
-            viewWidth = img.width;
-            viewHeight = viewWidth / targetRatio;
-            viewX = 0;
-            viewY = (img.height - viewHeight) / 2;
+            displayHeight = maxHeight;
+            displayWidth = maxHeight * imgRatio;
+        }
+
+        canvas.width = displayWidth;
+        canvas.height = displayHeight;
+        canvas.style.width = displayWidth + 'px';
+        canvas.style.height = displayHeight + 'px';
+
+        // Calculate crop box dimensions to maintain target aspect ratio
+        let cropBoxWidth, cropBoxHeight;
+        if (displayWidth / displayHeight > targetRatio) {
+            // Canvas is wider than target ratio - fit by height
+            cropBoxHeight = displayHeight;
+            cropBoxWidth = cropBoxHeight * targetRatio;
+        } else {
+            // Canvas is taller than target ratio - fit by width
+            cropBoxWidth = displayWidth;
+            cropBoxHeight = cropBoxWidth / targetRatio;
         }
 
         this.cropData = {
             img: img,
-            baseViewWidth: viewWidth,
-            baseViewHeight: viewHeight,
-            viewX: viewX,
-            viewY: viewY,
-            viewWidth: viewWidth,
-            viewHeight: viewHeight,
+            displayWidth: displayWidth,
+            displayHeight: displayHeight,
+            cropBox: {
+                x: (displayWidth - cropBoxWidth) / 2,
+                y: (displayHeight - cropBoxHeight) / 2,
+                width: cropBoxWidth,
+                height: cropBoxHeight
+            },
+            minCropWidth: cropBoxWidth * 0.5,  // Minimum 50% zoom out
+            maxCropWidth: Math.min(cropBoxWidth * 2, displayWidth), // Maximum 200% zoom in
             isDragging: false,
             startX: 0,
             startY: 0,
-            zoom: 100
+            targetRatio: targetRatio
         };
 
         this.zoom = 100;
-        document.getElementById('zoom-slider').value = 100;
+        const slider = document.getElementById('modal-zoom-slider');
+        if (slider) slider.value = 100;
 
         this.drawCrop(ctx, canvas);
         this.addCropListeners(canvas);
     },
 
-    // Draw crop on canvas
+    // Draw crop on canvas (X/Twitter style - full image with blue crop box overlay)
     drawCrop(ctx, canvas) {
-        const { img, viewX, viewY, viewWidth, viewHeight } = this.cropData;
+        const { img, displayWidth, displayHeight, cropBox } = this.cropData;
+
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, viewX, viewY, viewWidth, viewHeight, 0, 0, canvas.width, canvas.height);
+
+        // Draw full image
+        ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
+
+        // Draw dark overlay
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Clear crop area (show original image)
+        ctx.clearRect(cropBox.x, cropBox.y, cropBox.width, cropBox.height);
+        ctx.drawImage(
+            img,
+            (cropBox.x / displayWidth) * img.width,
+            (cropBox.y / displayHeight) * img.height,
+            (cropBox.width / displayWidth) * img.width,
+            (cropBox.height / displayHeight) * img.height,
+            cropBox.x,
+            cropBox.y,
+            cropBox.width,
+            cropBox.height
+        );
+
+        // Draw blue border for crop box
+        ctx.strokeStyle = '#1d9bf0'; // Twitter blue
+        ctx.lineWidth = 3;
+        ctx.strokeRect(cropBox.x, cropBox.y, cropBox.width, cropBox.height);
+
+        // Draw corner handles
+        const handleSize = 8;
+        ctx.fillStyle = '#1d9bf0';
+        // Top-left
+        ctx.fillRect(cropBox.x - handleSize/2, cropBox.y - handleSize/2, handleSize, handleSize);
+        // Top-right
+        ctx.fillRect(cropBox.x + cropBox.width - handleSize/2, cropBox.y - handleSize/2, handleSize, handleSize);
+        // Bottom-left
+        ctx.fillRect(cropBox.x - handleSize/2, cropBox.y + cropBox.height - handleSize/2, handleSize, handleSize);
+        // Bottom-right
+        ctx.fillRect(cropBox.x + cropBox.width - handleSize/2, cropBox.y + cropBox.height - handleSize/2, handleSize, handleSize);
     },
 
-    // Add crop drag listeners with touch support
+    // Add crop drag listeners - drag to move crop box
     addCropListeners(canvas) {
         const ctx = canvas.getContext('2d');
 
         const startDrag = (clientX, clientY) => {
             const rect = canvas.getBoundingClientRect();
-            this.cropData.isDragging = true;
-            this.cropData.startX = clientX - rect.left;
-            this.cropData.startY = clientY - rect.top;
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+
+            // Check if click is inside crop box
+            const { cropBox } = this.cropData;
+            if (x >= cropBox.x && x <= cropBox.x + cropBox.width &&
+                y >= cropBox.y && y <= cropBox.y + cropBox.height) {
+                this.cropData.isDragging = true;
+                this.cropData.startX = x;
+                this.cropData.startY = y;
+                this.cropData.lastCropX = cropBox.x;
+                this.cropData.lastCropY = cropBox.y;
+                canvas.style.cursor = 'move';
+            }
         };
 
         const moveDrag = (clientX, clientY) => {
             if (!this.cropData.isDragging) return;
 
             const rect = canvas.getBoundingClientRect();
-            const currentX = clientX - rect.left;
-            const currentY = clientY - rect.top;
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
 
-            const deltaX = (currentX - this.cropData.startX) * (this.cropData.img.width / canvas.width);
-            const deltaY = (currentY - this.cropData.startY) * (this.cropData.img.height / canvas.height);
+            const deltaX = x - this.cropData.startX;
+            const deltaY = y - this.cropData.startY;
 
-            this.cropData.viewX -= deltaX;
-            this.cropData.viewY -= deltaY;
+            let newX = this.cropData.lastCropX + deltaX;
+            let newY = this.cropData.lastCropY + deltaY;
 
-            // Constrain to image bounds
-            this.cropData.viewX = Math.max(0, Math.min(this.cropData.viewX,
-                this.cropData.img.width - this.cropData.viewWidth));
-            this.cropData.viewY = Math.max(0, Math.min(this.cropData.viewY,
-                this.cropData.img.height - this.cropData.viewHeight));
+            // Constrain to canvas bounds
+            newX = Math.max(0, Math.min(newX, this.cropData.displayWidth - this.cropData.cropBox.width));
+            newY = Math.max(0, Math.min(newY, this.cropData.displayHeight - this.cropData.cropBox.height));
+
+            this.cropData.cropBox.x = newX;
+            this.cropData.cropBox.y = newY;
 
             this.drawCrop(ctx, canvas);
-
-            this.cropData.startX = currentX;
-            this.cropData.startY = currentY;
         };
 
         const endDrag = () => {
             this.cropData.isDragging = false;
+            canvas.style.cursor = 'default';
         };
 
         // Mouse events
@@ -227,7 +379,7 @@ const uploadModule = {
         canvas.addEventListener('mouseup', endDrag);
         canvas.addEventListener('mouseleave', endDrag);
 
-        // Touch events for mobile
+        // Touch events
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             const touch = e.touches[0];
@@ -243,76 +395,92 @@ const uploadModule = {
         canvas.addEventListener('touchend', endDrag);
     },
 
-    // Zoom functions
+    // Zoom functions - adjust crop box size
     setZoom(value) {
         if (!this.cropData) return;
 
         this.zoom = parseInt(value);
         const zoomFactor = this.zoom / 100;
 
-        // Calculate new view dimensions (smaller view = more zoom)
-        this.cropData.viewWidth = this.cropData.baseViewWidth / zoomFactor;
-        this.cropData.viewHeight = this.cropData.baseViewHeight / zoomFactor;
+        // Calculate new crop box size (inverse - higher zoom = smaller box = more zoomed in)
+        const { cropBox, targetRatio, minCropWidth, maxCropWidth, displayWidth, displayHeight } = this.cropData;
 
-        // Adjust position to keep centered
-        const centerXRatio = (this.cropData.viewX + this.cropData.baseViewWidth / 2) / this.cropData.img.width;
-        const centerYRatio = (this.cropData.viewY + this.cropData.baseViewHeight / 2) / this.cropData.img.height;
+        // Calculate base crop box size
+        let baseCropWidth, baseCropHeight;
+        if (displayWidth / displayHeight > targetRatio) {
+            baseCropHeight = displayHeight;
+            baseCropWidth = baseCropHeight * targetRatio;
+        } else {
+            baseCropWidth = displayWidth;
+            baseCropHeight = baseCropWidth / targetRatio;
+        }
 
-        this.cropData.viewX = centerXRatio * this.cropData.img.width - this.cropData.viewWidth / 2;
-        this.cropData.viewY = centerYRatio * this.cropData.img.height - this.cropData.viewHeight / 2;
+        // Inverse zoom: 50% = larger box (zoomed out), 200% = smaller box (zoomed in)
+        const newWidth = baseCropWidth / zoomFactor;
+        const newHeight = baseCropHeight / zoomFactor;
 
-        // Constrain to image bounds
-        this.cropData.viewX = Math.max(0, Math.min(this.cropData.viewX,
-            this.cropData.img.width - this.cropData.viewWidth));
-        this.cropData.viewY = Math.max(0, Math.min(this.cropData.viewY,
-            this.cropData.img.height - this.cropData.viewHeight));
+        // Constrain to limits
+        const constrainedWidth = Math.max(minCropWidth, Math.min(maxCropWidth, newWidth));
+        const constrainedHeight = constrainedWidth / targetRatio;
 
-        const canvas = document.getElementById('crop-canvas');
-        const ctx = canvas.getContext('2d');
-        this.drawCrop(ctx, canvas);
+        // Keep crop box centered
+        const centerX = cropBox.x + cropBox.width / 2;
+        const centerY = cropBox.y + cropBox.height / 2;
+
+        cropBox.width = constrainedWidth;
+        cropBox.height = constrainedHeight;
+        cropBox.x = centerX - constrainedWidth / 2;
+        cropBox.y = centerY - constrainedHeight / 2;
+
+        // Constrain to canvas bounds
+        cropBox.x = Math.max(0, Math.min(cropBox.x, displayWidth - cropBox.width));
+        cropBox.y = Math.max(0, Math.min(cropBox.y, displayHeight - cropBox.height));
+
+        const canvas = document.getElementById('modal-crop-canvas');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            this.drawCrop(ctx, canvas);
+        }
     },
 
     zoomIn() {
-        const slider = document.getElementById('zoom-slider');
-        const newZoom = Math.min(300, this.zoom + 10);
+        const slider = document.getElementById('modal-zoom-slider');
+        if (!slider) return;
+        const newZoom = Math.min(200, this.zoom + 10);
         slider.value = newZoom;
         this.setZoom(newZoom);
     },
 
     zoomOut() {
-        const slider = document.getElementById('zoom-slider');
-        const newZoom = Math.max(100, this.zoom - 10);
+        const slider = document.getElementById('modal-zoom-slider');
+        if (!slider) return;
+        const newZoom = Math.max(50, this.zoom - 10);
         slider.value = newZoom;
         this.setZoom(newZoom);
-    },
-
-    // Reset crop to original
-    resetCrop() {
-        if (this.currentFile) {
-            const input = document.getElementById('suspend-file');
-            this.previewSuspend(input);
-        }
     },
 
     // Upload suspend screen image
     async uploadSuspend() {
         const statusEl = 'suspend-status';
-        const canvas = document.getElementById('crop-canvas');
 
-        if (!canvas || canvas.style.display === 'none') {
-            utils.showStatus(statusEl, 'Please select and crop an image first', true);
+        if (!this.currentFile) {
+            utils.showStatus(statusEl, 'Please select an image first', true);
             return;
         }
 
         try {
             utils.showStatus(statusEl, 'Processing and uploading...', false);
 
-            // Get the cropped image as blob
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-            const file = new File([blob], this.currentFile.name, { type: 'image/png' });
+            // Use cropped blob if available, otherwise use original file
+            let fileToUpload;
+            if (this.croppedBlob) {
+                fileToUpload = new File([this.croppedBlob], this.currentFile.name, { type: 'image/png' });
+            } else {
+                fileToUpload = this.currentFile;
+            }
 
             const formData = new FormData();
-            formData.append('image', file);
+            formData.append('image', fileToUpload);
 
             const msg = await utils.fetchText('/api/upload-suspend', {
                 method: 'POST',
@@ -321,13 +489,16 @@ const uploadModule = {
             utils.showStatus(statusEl, msg, false);
 
             // Save to library
-            await this.saveToLibrary(file);
+            await this.saveToLibrary(fileToUpload);
 
             // Refresh current screen preview
             const currentImg = document.getElementById('current-suspend');
             if (currentImg) {
                 currentImg.src = '/api/current-suspend?t=' + Date.now();
             }
+
+            // Reset state
+            this.croppedBlob = null;
         } catch (e) {
             utils.showStatus(statusEl, 'Upload failed: ' + e.message, true);
         }
