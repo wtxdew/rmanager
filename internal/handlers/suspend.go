@@ -2,14 +2,13 @@ package handlers
 
 import (
 	"fmt"
-	"image/png"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 
 	"rmanager/internal/config"
 	"rmanager/internal/platform"
-	"rmanager/internal/services"
 )
 
 // UploadSuspendScreen handles suspend screen image uploads
@@ -42,16 +41,11 @@ func UploadSuspendScreen(cfg *config.Config) http.HandlerFunc {
 		}
 		defer dst.Close()
 
-		// Get device-specific screen dimensions
-		width, height := cfg.GetScreenDimensions()
-
-		processedImg, err := services.ProcessImage(file, width, height)
-		if err != nil {
-			http.Error(w, "Failed to process: "+err.Error(), http.StatusInternalServerError)
+		if _, err := io.Copy(dst, file); err != nil {
+			platform.Mount(cfg, "ro")
+			http.Error(w, "Failed to save image: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
-
-		png.Encode(dst, processedImg)
 		platform.Mount(cfg, "ro")
 
 		fmt.Fprint(w, "Successfully changed the suspend screen!")
