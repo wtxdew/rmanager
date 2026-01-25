@@ -1,5 +1,9 @@
 rm-server
 
+# React build artifacts
+web-react/node_modules/
+web-react/dist/
+
 # Test data (keep directory structure, ignore content)
 testdata/xochitl/*.pdf
 testdata/xochitl/*.epub

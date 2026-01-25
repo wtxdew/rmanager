@@ -11,6 +11,8 @@ GO_FLAGS    := -ldflags="-s -w"
 all: deploy
 
 build:
+	@echo "Building React frontend..."
+	@cd web-react && npm run build
 	@echo "Building $(APP_NAME)..."
 	@$(GO_ENV) go build $(GO_FLAGS) -o $(APP_NAME) cmd/server/main.go
 
@@ -23,9 +25,9 @@ terminate:
 push: terminate
 		@echo "Transferring to device..."
 		@scp ./$(APP_NAME) $(DEVICE_USER)@$(DEVICE_IP):$(REMOTE_PATH)
-		@echo "Transferring web files..."
-		@ssh $(DEVICE_USER)@$(DEVICE_IP) "mkdir -p /home/root/web"
-		@scp -r ./web/* $(DEVICE_USER)@$(DEVICE_IP):/home/root/web/
+		@echo "Transferring React build files..."
+		@ssh $(DEVICE_USER)@$(DEVICE_IP) "mkdir -p /home/root/web-react/dist"
+		@scp -r ./web-react/dist/* $(DEVICE_USER)@$(DEVICE_IP):/home/root/web-react/dist/
 
 run: push
 		@ssh $(DEVICE_USER)@$(DEVICE_IP) "chmod +x $(REMOTE_PATH) && $(REMOTE_PATH)" &
