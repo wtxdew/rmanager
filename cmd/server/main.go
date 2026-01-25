@@ -11,7 +11,7 @@ import (
 func main() {
 	cfg := config.Load()
 
-	// Check device support
+	// TODO: Move this check to specific function, not fatal error.
 	if !cfg.IsDevMode() && !cfg.IsSupported() {
 		log.Fatalf("ERROR: Unsupported device model: %s\n"+
 			"This application currently only supports reMarkable Paper Pro (RMPP) and RMPP Move.\n"+

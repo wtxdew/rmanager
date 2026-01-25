@@ -9,10 +9,10 @@ echo "[INFO] Creating test data..."
 mkdir -p testdata/{xochitl,books,screen}
 
 # Create 5 test documents
-for i in {1..5}; do
-    UUID="test-uuid-00$i"
+for i in {1..2}; do
+	UUID="test-uuid-00$i"
 
-    cat > "testdata/xochitl/$UUID.metadata" << EOF
+	cat >"testdata/xochitl/$UUID.metadata" <<EOF
 {
   "deleted": false,
   "lastModified": "$(date +%s)000",
@@ -27,14 +27,14 @@ for i in {1..5}; do
 }
 EOF
 
-    cat > "testdata/xochitl/$UUID.content" << EOF
+	cat >"testdata/xochitl/$UUID.content" <<EOF
 {"fileType":"pdf"}
 EOF
 
-    # Create empty PDF file with random size
-    dd if=/dev/zero of="testdata/xochitl/$UUID.pdf" bs=1024 count=$((RANDOM % 1000 + 100)) 2>/dev/null
+	# Create empty PDF file with random size
+	dd if=/dev/zero of="testdata/xochitl/$UUID.pdf" bs=1024 count=$((RANDOM % 1000 + 100)) 2>/dev/null
 
-    echo "[OK] Created test document $i (UUID: $UUID)"
+	echo "[OK] Created test document $i (UUID: $UUID)"
 done
 
 echo ""

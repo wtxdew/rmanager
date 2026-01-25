@@ -124,7 +124,7 @@ export const SuspendScreenManager = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
         {/* Left Column: Active Screen Preview */}
         <div className="flex flex-col h-full">
-          <Card title="Active Screen Preview" className="flex-1 flex flex-col">
+          <Card title="Current Suspended Screen" className="flex-1 flex flex-col">
             <div className="flex-1 bg-slate-100 rounded border border-slate-200 relative overflow-hidden flex items-center justify-center">
               <img
                 src={currentScreenUrl}
@@ -135,9 +135,6 @@ export const SuspendScreenManager = () => {
                   e.currentTarget.alt = 'No suspend screen found';
                 }}
               />
-            </div>
-            <div className="mt-4 text-center text-slate-500 text-sm">
-              Current active suspend screen on device
             </div>
           </Card>
         </div>

@@ -10,8 +10,8 @@ type DeviceModel string
 
 const (
 	DeviceUnknown      DeviceModel = "unknown"
-	DeviceRM1          DeviceModel = "reMarkable 1"                // Not supported yet
-	DeviceRM2          DeviceModel = "reMarkable 2"                // Not supported yet
+	DeviceRM1          DeviceModel = "reMarkable 1" // Not supported yet
+	DeviceRM2          DeviceModel = "reMarkable 2" // Not supported yet
 	DeviceRMPP         DeviceModel = "reMarkable Paper Pro"
 	DeviceRMPPMove     DeviceModel = "reMarkable Paper Pro Move"
 	DeviceTestPlatform DeviceModel = "Test Platform (Mac/Linux)"
@@ -36,9 +36,23 @@ var deviceSpecs = map[DeviceModel]DeviceSpec{
 	},
 	DeviceRMPPMove: {
 		Model:          DeviceRMPPMove,
-		ScreenWidth:    1696,
-		ScreenHeight:   954,
+		ScreenWidth:    954,
+		ScreenHeight:   1696,
 		PPI:            264,
+		SupportedTypes: []string{"pdf", "epub"},
+	},
+	DeviceRM2: {
+		Model:          DeviceRM2,
+		ScreenWidth:    1404,
+		ScreenHeight:   1872,
+		PPI:            226,
+		SupportedTypes: []string{"pdf", "epub"},
+	},
+	DeviceRM1: {
+		Model:          DeviceRM1,
+		ScreenWidth:    1404,
+		ScreenHeight:   1872,
+		PPI:            226,
 		SupportedTypes: []string{"pdf", "epub"},
 	},
 }
@@ -56,7 +70,6 @@ type Config struct {
 func Load() *Config {
 	cfg := &Config{}
 
-	// Detect environment
 	devMode := os.Getenv("DEV_MODE") == "true"
 	cfg.DevMode = devMode
 
@@ -71,9 +84,9 @@ func Load() *Config {
 		// Use test platform spec for development
 		cfg.DeviceSpec = DeviceSpec{
 			Model:          DeviceTestPlatform,
-			ScreenWidth:    1620,
-			ScreenHeight:   2160,
-			PPI:            229,
+			ScreenWidth:    954,
+			ScreenHeight:   1696,
+			PPI:            264,
 			SupportedTypes: []string{"pdf", "epub"},
 		}
 	} else {
@@ -84,7 +97,6 @@ func Load() *Config {
 		cfg.BooksPath = "/home/root/.local/share/remarkable/xochitl/"
 		cfg.XochitlPath = "/home/root/.local/share/remarkable/xochitl"
 
-		// Detect actual device model
 		cfg.DeviceSpec = detectDevice()
 	}
 
@@ -100,30 +112,13 @@ func detectDevice() DeviceSpec {
 
 		switch {
 		case strings.Contains(modelLower, "chiappa"):
-			// RMPP Move codename
 			return deviceSpecs[DeviceRMPPMove]
-		case strings.Contains(model, "reMarkable 1.0"):
-			// RM1 not supported
-			return DeviceSpec{
-				Model:          DeviceRM1,
-				ScreenWidth:    1404,
-				ScreenHeight:   1872,
-				PPI:            226,
-				SupportedTypes: []string{},
-			}
-		case strings.Contains(model, "reMarkable 2.0"):
-			// RM2 not supported
-			return DeviceSpec{
-				Model:          DeviceRM2,
-				ScreenWidth:    1404,
-				ScreenHeight:   1872,
-				PPI:            226,
-				SupportedTypes: []string{},
-			}
-		case strings.Contains(model, "reMarkable Paper Pro Move"):
-			return deviceSpecs[DeviceRMPPMove]
-		case strings.Contains(model, "reMarkable Paper Pro"):
+		case strings.Contains(modelLower, "ferrari"):
 			return deviceSpecs[DeviceRMPP]
+		case strings.Contains(modelLower, "rm1"):
+			return deviceSpecs[DeviceRM1]
+		case strings.Contains(modelLower, "rm2"):
+			return deviceSpecs[DeviceRM2]
 		}
 	}
 
@@ -135,34 +130,18 @@ func detectDevice() DeviceSpec {
 		if strings.Contains(modelLower, "chiappa") {
 			return deviceSpecs[DeviceRMPPMove]
 		}
-		if strings.Contains(modelLower, "move") {
-			return deviceSpecs[DeviceRMPPMove]
-		}
-		if strings.Contains(modelLower, "pro") {
+		if strings.Contains(modelLower, "ferrari") {
 			return deviceSpecs[DeviceRMPP]
 		}
-		if strings.Contains(modelLower, "remarkable 2") {
-			return DeviceSpec{
-				Model:          DeviceRM2,
-				ScreenWidth:    1404,
-				ScreenHeight:   1872,
-				PPI:            226,
-				SupportedTypes: []string{},
-			}
+		if strings.Contains(modelLower, "rm2") {
+			return deviceSpecs[DeviceRM2]
 		}
-		if strings.Contains(modelLower, "remarkable 1") {
-			return DeviceSpec{
-				Model:          DeviceRM1,
-				ScreenWidth:    1404,
-				ScreenHeight:   1872,
-				PPI:            226,
-				SupportedTypes: []string{},
-			}
+		if strings.Contains(modelLower, "rm1") {
+			return deviceSpecs[DeviceRM1]
 		}
 	}
 
-	// Fallback: assume RMPP
-	return deviceSpecs[DeviceRMPP]
+	return deviceSpecs[DeviceUnknown]
 }
 
 func getEnv(key, defaultVal string) string {
@@ -172,19 +151,16 @@ func getEnv(key, defaultVal string) string {
 	return defaultVal
 }
 
-// IsDevMode checks if running in development mode
 func (c *Config) IsDevMode() bool {
 	return c.DevMode
 }
 
-// IsSupported checks if the device is supported
 func (c *Config) IsSupported() bool {
 	return c.DeviceSpec.Model != DeviceRM1 &&
-	       c.DeviceSpec.Model != DeviceRM2 &&
-	       c.DeviceSpec.Model != DeviceUnknown
+		c.DeviceSpec.Model != DeviceRM2 &&
+		c.DeviceSpec.Model != DeviceUnknown
 }
 
-// GetDeviceDisplayName returns a user-friendly device name with support status
 func (c *Config) GetDeviceDisplayName() string {
 	switch c.DeviceSpec.Model {
 	case DeviceRM1:
@@ -193,12 +169,13 @@ func (c *Config) GetDeviceDisplayName() string {
 		return string(DeviceRM2) + " (not supported yet)"
 	case DeviceTestPlatform:
 		return string(DeviceTestPlatform)
+	case DeviceUnknown:
+		return string(DeviceUnknown) + " (not supported)"
 	default:
 		return string(c.DeviceSpec.Model)
 	}
 }
 
-// GetScreenDimensions returns screen dimensions for this device
 func (c *Config) GetScreenDimensions() (width, height int) {
 	return c.DeviceSpec.ScreenWidth, c.DeviceSpec.ScreenHeight
 }
