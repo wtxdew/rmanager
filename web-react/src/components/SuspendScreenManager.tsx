@@ -147,7 +147,7 @@ export const SuspendScreenManager = () => {
         {/* Left Column: Active Screen Preview */}
         <div className="flex flex-col h-full min-h-0 ">
           <Card title="Current Suspended Screen" className="flex-1 flex flex-col min-h-0">
-            <div className="flex-1 bg-slate-100 rounded border border-slate-200 relative overflow-hidden flex items-center justify-center min-h-0">
+            <div className="flex-1 bg-slate-100 rounded border relative overflow-hidden flex items-center justify-center min-h-0">
               <img
                 src={currentScreenUrl}
                 alt="Current suspend screen"
@@ -228,7 +228,7 @@ export const SuspendScreenManager = () => {
               {croppedBlob ? (
                 // Preview State
                 <div className="w-full h-full flex flex-col items-center relative z-0 min-h-0">
-                  <div className="flex-1 w-full flex items-center justify-center overflow-hidden mb-4 min-h-0">
+                  <div className="flex-1 w-full flex items-center justify-center overflow-hidden mb-4 min-h-0 bg-slate-100">
                     <img
                       src={URL.createObjectURL(croppedBlob)}
                       alt="Cropped preview"
