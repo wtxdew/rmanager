@@ -32,8 +32,14 @@ export const suspendScreenAPI = {
     return response.text();
   },
 
-  async getCurrentImage() {
-    return `${API_BASE}/current-suspend?t=${Date.now()}`;
+  getCurrentImageUrl() {
+    return `${API_BASE}/current-suspend?t=${new Date().getTime()}`;
+  },
+
+  async getHistoryLibrary() {
+    const response = await fetch(`${API_BASE}/history-suspend`);
+    if (!response.ok) throw new Error('Failed to fetch history library');
+    return response.json();
   },
 };
 

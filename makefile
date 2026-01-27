@@ -45,14 +45,12 @@ kill-remote:
 		@echo "Remote app terminated."
 
 # Local development targets
-.PHONY: dev dev-setup test-local clean-test
+.PHONY: dev test-local clean-test
 
-dev-setup:
+dev: 
 	@echo "Setting up local development environment..."
 	@chmod +x scripts/dev.sh scripts/test-setup.sh
 	@./scripts/test-setup.sh
-
-dev: dev-setup
 	@./scripts/dev.sh
 
 test-local:

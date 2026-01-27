@@ -1,8 +1,9 @@
 // @ts-nocheck
 import React, { useState, useRef } from 'react';
-import { Upload } from 'lucide-react';
+import { Upload, History } from 'lucide-react';
 import { suspendScreenAPI } from '../services/api';
 import { ImageCropperModal } from './ImageCropperModal';
+import { HistoryModal } from './HistoryModal';
 
 const Card = ({ title, children, className = "", action }: { title: string, children: React.ReactNode, className?: string, action?: React.ReactNode }) => (
   <div className={`bg-white border border-slate-200 rounded-lg p-5 shadow-sm ${className}`}>
@@ -16,11 +17,12 @@ const Card = ({ title, children, className = "", action }: { title: string, chil
 
 export const SuspendScreenManager = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [croppedBlob, setCroppedBlob] = useState<Blob | null>(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string>('');
-  const [currentScreenUrl, setCurrentScreenUrl] = useState(suspendScreenAPI.getCurrentImage());
+  const [currentScreenUrl, setCurrentScreenUrl] = useState(suspendScreenAPI.getCurrentImageUrl());
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -86,7 +88,7 @@ export const SuspendScreenManager = () => {
       const result = await suspendScreenAPI.uploadImage(file);
 
       setMessage(result);
-      setCurrentScreenUrl(suspendScreenAPI.getCurrentImage());
+      setCurrentScreenUrl(suspendScreenAPI.getCurrentImageUrl());
       setCroppedBlob(null);
 
       // Clear file input
@@ -121,11 +123,31 @@ export const SuspendScreenManager = () => {
         />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
+      <HistoryModal
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        onSelect={(url) => {
+          // Fetch the image as blob to put into the cropper/preview
+          fetch(url)
+            .then(res => res.blob())
+            .then(blob => {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                setSelectedImage(e.target?.result as string);
+                setIsModalOpen(true);
+                setIsHistoryOpen(false);
+              };
+              reader.readAsDataURL(blob);
+            })
+            .catch(err => setMessage('Failed to load history image: ' + err.message));
+        }}
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-8 w-full h-full px-4 min-h-0">
         {/* Left Column: Active Screen Preview */}
-        <div className="flex flex-col h-full">
-          <Card title="Current Suspended Screen" className="flex-1 flex flex-col">
-            <div className="flex-1 bg-slate-100 rounded border border-slate-200 relative overflow-hidden flex items-center justify-center">
+        <div className="flex flex-col h-full min-h-0 ">
+          <Card title="Current Suspended Screen" className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 bg-slate-100 rounded border border-slate-200 relative overflow-hidden flex items-center justify-center min-h-0">
               <img
                 src={currentScreenUrl}
                 alt="Current suspend screen"
@@ -139,15 +161,50 @@ export const SuspendScreenManager = () => {
           </Card>
         </div>
 
+        {/* Center Column: Action Buttons */}
+        <div className="flex items-center justify-center min-h-0">
+          <div className="w-full space-y-3 min-h-0">
+            <button
+              onClick={() => setIsHistoryOpen(true)}
+              className="w-full py-3 text-sm font-bold bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2 min-h-0"
+            >
+              <History className="w-4 h-4" />
+              History Library
+            </button>
+
+            <button
+              onClick={handleUpload}
+              disabled={uploading}
+              className="w-full py-3 text-sm font-bold bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2"
+            >
+              {uploading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4" />
+                  Sync to Device
+                </>
+              )}
+            </button>
+            <p className="text-xs text-slate-400">Clicking sync will replace the device's current suspend screen</p>
+          </div>
+        </div>
+
         {/* Right Column: Upload / Preview */}
-        <div className="flex flex-col h-full">
-          <Card title="Upload New Screen" className="flex-1 flex flex-col">
+        <div className="flex flex-col h-full min-h-0">
+          <Card
+            title="Upload New Screen"
+            className="flex-1 flex flex-col min-h-0"
+          >
             <div
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={handleUploadClick}
-              className={`flex-1 border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center text-center transition-all duration-200 relative
+              className={`flex-1 border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center text-center transition-all duration-200 relative min-h-0
                 ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-slate-300 hover:bg-slate-50'}
                 ${!croppedBlob ? 'cursor-pointer' : ''}
               `}
@@ -162,7 +219,7 @@ export const SuspendScreenManager = () => {
 
               {/* Drag Overlay */}
               {isDragging && (
-                <div className="absolute inset-0 bg-blue-50/90 flex flex-col items-center justify-center z-10 rounded-lg">
+                <div className="absolute inset-0 bg-blue-50/90 flex flex-col items-center justify-center z-10 rounded-lg min-h-0">
                   <Upload className="w-12 h-12 text-blue-500 mb-4 animate-bounce" />
                   <p className="text-blue-600 font-medium text-lg">Drop to upload</p>
                 </div>
@@ -170,44 +227,22 @@ export const SuspendScreenManager = () => {
 
               {croppedBlob ? (
                 // Preview State
-                <div className="w-full h-full flex flex-col items-center relative z-0">
-                  <div className="flex-1 w-full flex items-center justify-center overflow-hidden mb-4">
-                    <div className="relative aspect-[9/16] h-full max-h-[400px] shadow-md">
-                      <img
-                        src={URL.createObjectURL(croppedBlob)}
-                        alt="Cropped preview"
-                        className="w-full h-full object-cover rounded"
-                      />
-                      <button
-                        onClick={handleClearPreview}
-                        className="absolute -top-2 -right-2 bg-white text-slate-500 rounded-full p-1 shadow hover:bg-red-50 hover:text-red-500 transition-colors"
-                        title="Clear preview"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                      </button>
-                    </div>
+                <div className="w-full h-full flex flex-col items-center relative z-0 min-h-0">
+                  <div className="flex-1 w-full flex items-center justify-center overflow-hidden mb-4 min-h-0">
+                    <img
+                      src={URL.createObjectURL(croppedBlob)}
+                      alt="Cropped preview"
+                      className="w-full h-full object-contain rounded max-h-full"
+                    />
+                    <button
+                      onClick={handleClearPreview}
+                      className="absolute -top-2 -right-2 bg-white text-slate-500 rounded-full p-1 shadow hover:bg-red-50 hover:text-red-500 transition-colors"
+                      title="Clear preview"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
                   </div>
 
-                  <div className="w-full space-y-3">
-                    <button
-                      onClick={handleUpload}
-                      disabled={uploading}
-                      className="w-full py-3 text-sm font-bold bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2"
-                    >
-                      {uploading ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          Uploading...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-4 h-4" />
-                          Sync to Device
-                        </>
-                      )}
-                    </button>
-                    <p className="text-xs text-slate-400">Clicking sync will replace the device's current suspend screen</p>
-                  </div>
                 </div>
               ) : (
                 // Empty State

@@ -28,6 +28,8 @@ func Setup(cfg *config.Config) http.Handler {
 		// Suspend screen endpoints
 		r.Post("/upload-suspend", handlers.UploadSuspendScreen(cfg))
 		r.Get("/current-suspend", handlers.GetCurrentSuspend(cfg))
+		r.Get("/history-suspend", handlers.GetHistoryLibrary(cfg))
+		r.Get("/history-suspend/{filename}", handlers.GetHistoryItem(cfg))
 
 		// Document endpoints
 		r.Post("/upload-doc", handlers.UploadDocument(cfg))

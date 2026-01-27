@@ -83,6 +83,11 @@ func Load() *Config {
 		cfg.XochitlPath = "./testdata/xochitl"
 		cfg.HistoryPath = "./testdata/history"
 
+		os.MkdirAll(cfg.HistoryPath, 0755)
+		os.MkdirAll(cfg.BooksPath, 0755)
+		os.MkdirAll(cfg.ScreenPath, 0755)
+		os.MkdirAll(cfg.XochitlPath, 0755)
+
 		// Use test platform spec for development
 		cfg.DeviceSpec = DeviceSpec{
 			Model:          DeviceTestPlatform,

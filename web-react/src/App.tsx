@@ -49,11 +49,10 @@ export default function App() {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id as any)}
-                className={`flex items-center gap-3 w-full px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
-                  isActive
-                    ? 'bg-slate-800 text-white shadow-md shadow-slate-200'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }`}
+                className={`flex items-center gap-3 w-full px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${isActive
+                  ? 'bg-slate-800 text-white shadow-md shadow-slate-200'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
               >
                 <Icon className={`w-5 h-5 ${isActive ? 'text-slate-300' : 'text-slate-500'}`} />
                 {item.label}
@@ -66,11 +65,11 @@ export default function App() {
           <div className="flex items-center gap-3 px-2">
             <div className="w-8 h-8 rounded bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-xs">RM</div>
             <div className="flex flex-col">
-                <span className="text-sm font-medium">reMarkable PPro</span>
-                <span className="text-xs text-emerald-600 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    Connected
-                </span>
+              <span className="text-sm font-medium">reMarkable PPro</span>
+              <span className="text-xs text-emerald-600 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Connected
+              </span>
             </div>
           </div>
         </div>
@@ -81,15 +80,15 @@ export default function App() {
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
           <h2 className="text-xl font-semibold text-slate-800 tracking-tight capitalize">{activeTab.replace('-', ' ')}</h2>
           <div className="flex items-center gap-4">
-             <span className="px-3 py-1 bg-slate-100 rounded text-xs font-mono text-slate-600">React v2.0</span>
-             <button className="text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors">Settings</button>
+            <span className="px-3 py-1 bg-slate-100 rounded text-xs font-mono text-slate-600">React v2.0</span>
+            <button className="text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors">Settings</button>
           </div>
         </header>
 
         <div className="flex-1 overflow-auto p-8">
-            <div className="max-w-6xl mx-auto h-full">
-                {renderContent()}
-            </div>
+          <div className="max-w-8xl mx-auto h-full min-h-0">
+            {renderContent()}
+          </div>
         </div>
       </main>
     </div>
