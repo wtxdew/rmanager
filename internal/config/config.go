@@ -62,6 +62,7 @@ type Config struct {
 	Port        string
 	ScreenPath  string
 	BooksPath   string
+	HistoryPath string
 	XochitlPath string
 	DevMode     bool       // Development mode flag
 	DeviceSpec  DeviceSpec // Device specifications
@@ -80,6 +81,7 @@ func Load() *Config {
 		cfg.ScreenPath = "./testdata/screen"
 		cfg.BooksPath = "./testdata/books"
 		cfg.XochitlPath = "./testdata/xochitl"
+		cfg.HistoryPath = "./testdata/history"
 
 		// Use test platform spec for development
 		cfg.DeviceSpec = DeviceSpec{
@@ -94,8 +96,9 @@ func Load() *Config {
 		cfg.Host = "10.11.99.1"
 		cfg.Port = "8080"
 		cfg.ScreenPath = "/usr/share/remarkable/"
-		cfg.BooksPath = "/home/root/.local/share/remarkable/xochitl/"
 		cfg.XochitlPath = "/home/root/.local/share/remarkable/xochitl"
+		cfg.HistoryPath = "/home/root/rm-manager/history/"
+		cfg.BooksPath = "/home/root/rm-manager/books/"
 
 		cfg.DeviceSpec = detectDevice()
 	}

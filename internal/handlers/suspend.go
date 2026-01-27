@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-
 	"rmanager/internal/config"
 	"rmanager/internal/platform"
+	"time"
 )
 
 // UploadSuspendScreen handles suspend screen image uploads
@@ -44,6 +44,8 @@ func UploadSuspendScreen(cfg *config.Config) http.HandlerFunc {
 			http.Error(w, "Failed to save image: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		SaveToHistoryLibrary(cfg, file)
 		platform.Mount(cfg, "ro")
 
 		fmt.Fprint(w, "Successfully changed the suspend screen!")
@@ -58,4 +60,12 @@ func GetCurrentSuspend(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
-// GetHistorySuspendList serves the history suspend screen image list
+func SaveToHistoryLibrary(cfg *config.Config, image io.Reader) {
+	// uuid + .png
+	// dst, err := os.Create(filepath.Join(cfg.HistoryPath, uuid.New().String()+".png"))
+	// timestamp + .png
+	dst, _ := os.Create(filepath.Join(cfg.HistoryPath, time.Now().Format("20060102 150405")+".png"))
+	defer dst.Close()
+
+	io.Copy(dst, image)
+}
