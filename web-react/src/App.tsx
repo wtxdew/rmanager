@@ -7,6 +7,7 @@ import { FileManager } from './components/FileManager';
 import { Terminal } from './components/Terminal';
 import { BackupManager } from './components/BackupManager';
 import { TestSpace } from './components/TestSpace';
+import { Toaster } from 'react-hot-toast';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'suspend' | 'files' | 'terminal' | 'backup' | 'test'>('dashboard');
@@ -94,6 +95,39 @@ export default function App() {
           </div>
         </div>
       </main>
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          // 1. 默认样式 (所有 toast 都会用)
+          style: {
+            background: '#000000', // 纯黑背景
+            color: '#fff',         // 白色文字
+            borderRadius: '99px',  // 圆润胶囊形状
+            padding: '12px 24px',
+            fontSize: '14px',
+            fontWeight: '500',
+            maxWidth: '500px',
+          },
+
+          // 2. 针对 Success 的特化配置
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#22c55e', // 绿色图标 (Tailwind green-500)
+              secondary: '#fff',
+            },
+          },
+
+          // 3. 针对 Error 的特化配置
+          error: {
+            duration: 4000, // 错误提示通常多留一秒
+            iconTheme: {
+              primary: '#ef4444', // 红色图标 (Tailwind red-500)
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
     </div>
   );
 }

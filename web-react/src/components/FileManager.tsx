@@ -1,13 +1,15 @@
 // @ts-nocheck
 import React from 'react';
-import { FolderOpen, FileText, Upload, Trash2, Edit } from 'lucide-react';
+import { FolderOpen, FileText, Upload, Trash2, Edit, RefreshCcw } from 'lucide-react';
 import { useFileList } from '../hooks/useFileList';
+import toast from 'react-hot-toast';
+import { getErrorMessage } from '../utils/error';
 
 const Card = ({ title, children, className = "", action }: { title: string, children: React.ReactNode, className?: string, action?: React.ReactNode }) => (
   <div className={`bg-white border border-slate-200 rounded-lg p-5 shadow-sm ${className}`}>
     <div className="flex justify-between items-center mb-3">
-        <h3 className="text-slate-500 text-xs font-semibold uppercase tracking-wider">{title}</h3>
-        {action && <div>{action}</div>}
+      <h3 className="text-slate-500 text-xs font-semibold uppercase tracking-wider">{title}</h3>
+      {action && <div>{action}</div>}
     </div>
     {children}
   </div>
@@ -27,28 +29,46 @@ const formatDate = (timestamp: string) => {
 };
 
 export const FileManager = () => {
-  const { files, loading, error, refetch, deleteFile, renameFile } = useFileList();
+  const { files, loading, error, refetch, deleteFile, renameFile, uploadFile } = useFileList();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
-
     try {
       await deleteFile(id);
-      alert('File deleted successfully');
+      toast.success('File deleted successfully');
     } catch (err) {
-      alert('Failed to delete file: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      toast.error('Failed to delete file: ' + getErrorMessage(err));
+    }
+  };
+
+  const handleUpload = async (file: File) => {
+    try {
+      await uploadFile(file);
+      toast.success('File uploaded successfully');
+    } catch (err) {
+      toast.error('Failed to upload file: ' + getErrorMessage(err));
+    }
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleUpload(file);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
   const handleRename = async (id: string, oldName: string) => {
     const newName = prompt('Enter new name:', oldName);
     if (!newName || newName === oldName) return;
-
     try {
       await renameFile(id, newName);
-      alert('File renamed successfully');
+      toast.success('File renamed successfully!');
     } catch (err) {
-      alert('Failed to rename file: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      toast.error('Failed to rename file' + getErrorMessage(err));
     }
   };
 
@@ -59,11 +79,23 @@ export const FileManager = () => {
           <span className="font-semibold text-slate-800">/home/root/.local/share/remarkable/xochitl</span>
         </div>
         <div className="flex gap-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium border border-slate-200 rounded hover:bg-slate-50"
+          >
+            <Upload className="w-4 h-4" /> Upload
+          </button>
           <button
             onClick={refetch}
             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium border border-slate-200 rounded hover:bg-slate-50"
           >
-            <Upload className="w-4 h-4" /> Refresh
+            <RefreshCcw className="w-4 h-4" /> Refresh
           </button>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { fileManagerAPI } from '../services/api';
+import { fileManagerAPI, documentAPI } from '../services/api';
 
 export type FileItem = {
   id: string;
@@ -46,9 +46,18 @@ export function useFileList() {
     }
   };
 
+  const uploadFile = async (file: File) => {
+    try {
+      await documentAPI.uploadDocument(file);
+      await fetchFiles(); // Refresh list
+    } catch (err) {
+      throw err;
+    }
+  };
+
   useEffect(() => {
     fetchFiles();
   }, []);
 
-  return { files, loading, error, refetch: fetchFiles, deleteFile, renameFile };
+  return { files, loading, error, refetch: fetchFiles, deleteFile, renameFile, uploadFile };
 }
