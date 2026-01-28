@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useRef } from 'react';
-import { Upload, History } from 'lucide-react';
+import { Upload, History, CheckCircle, XCircle, CircleAlert } from 'lucide-react';
 import { suspendScreenAPI } from '../services/api';
 import { ImageCropperModal } from './ImageCropperModal';
 import { HistoryModal } from './HistoryModal';
@@ -149,7 +149,7 @@ export const SuspendScreenManager = () => {
         <div className="flex flex-col h-full min-h-0 space-y-3">
           <Card
             title="Upload New Screen"
-            className="flex flex-col min-h-0 max-h-full"
+            className="flex flex-col min-h-0 max-h-full items-center flex-1"
           >
             <div
               onDragOver={handleDragOver}
@@ -157,9 +157,9 @@ export const SuspendScreenManager = () => {
               onDrop={handleDrop}
               onClick={handleUploadClick}
               className={`border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-center transition-all duration-200 relative
-    max-h-full w-fit mx-auto min-h-0 aspect-[954/1696]
+    w-auto min-h-0 aspect-[954/1696] flex-1
     ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-slate-300 hover:bg-slate-50'}
-    ${!croppedBlob ? 'cursor-pointer p-8' : 'p-0'}
+    ${!croppedBlob ? 'cursor-pointer' : ''}
   `}
             >
               <input
@@ -180,15 +180,15 @@ export const SuspendScreenManager = () => {
 
               {croppedBlob ? (
                 // Preview State
-                <div className="relative aspect-[954/1696] max-h-full h-auto w-auto shadow-md min-h-0 bg-slate-100 rounded-lg flex items-center justify-center group">
+                <div className="relative w-full h-full bg-slate-100 rounded-lg flex items-center justify-center group overflow-hidden">
                   <img
                     src={URL.createObjectURL(croppedBlob)}
                     alt="Cropped preview"
-                    className="w-full h-full object-contain rounded max-h-full"
+                    className="w-full h-full object-contain"
                   />
                   <button
                     onClick={handleClearPreview}
-                    className="absolute -top-2 -right-2 bg-white text-slate-500 rounded-full p-1.5 shadow-md hover:text-red-500 transition-colors z-10"
+                    className="absolute top-2 right-2 bg-white text-slate-500 rounded-full p-1.5 shadow-md hover:text-red-500 transition-colors z-10"
                     title="Clear preview"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -196,21 +196,42 @@ export const SuspendScreenManager = () => {
                 </div>
               ) : (
                 // Empty State
-                <>
+                <div className="flex flex-col items-center justify-center w-full h-full p-4">
                   <div className="p-4 bg-slate-100 rounded-full mb-4 group-hover:bg-slate-200 transition-colors">
                     <Upload className="w-8 h-8 text-slate-600" />
                   </div>
                   <h3 className="text-lg font-medium text-slate-700 mb-2">Drag & drop or Click to Upload</h3>
                   <p className="text-slate-500 text-sm">Support PNG, JPG</p>
-                </>
+                </div>
               )}
             </div>
           </Card>
           <div className="flex flex-col items-center justify-center space-y-3 w-full min-h-0">
             <button
               onClick={handleUpload}
-              disabled={uploading || !croppedBlob}
-              className="w-full py-3 text-sm font-bold bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2"
+              // disabled={uploading || !croppedBlob}
+              disabled={uploading || (!croppedBlob && !message)}
+              // className="w-full py-3 text-sm font-bold bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2"
+              className={`
+    w-full py-3 text-sm font-bold text-white rounded transition-colors shadow-sm flex items-center justify-center gap-2
+    disabled:opacity-50 disabled:cursor-not-allowed
+    
+    ${(() => {
+                  if (uploading) return 'bg-blue-600';
+
+                  if (!message) return 'bg-blue-600 hover:bg-blue-700';
+
+                  const msg = message.toLowerCase();
+                  if (msg.includes('failed') || msg.includes('error')) {
+                    return 'bg-red-600 hover:bg-red-700';
+                  }
+
+                  if (msg.includes('success') || msg.includes('successfully')) {
+                    return 'bg-green-600 hover:bg-green-700';
+                  }
+                  return 'bg-blue-600 hover:bg-blue-700';
+                })()}
+  `}
             >
               {uploading ? (
                 <>
@@ -219,8 +240,23 @@ export const SuspendScreenManager = () => {
                 </>
               ) : (
                 <>
-                  <Upload className="w-4 h-4" />
-                  {message ? `${message}` : "Please Select file first"}
+                  {message ? (
+                    <div className="flex items-center gap-2">
+                      {message.includes('ready') && <Upload className="w-4 h-4" />}
+                      {message.includes('Success') && <CheckCircle className="w-4 h-4" />}
+                      {message.includes('Please select a PNG or JPEG image') && <XCircle className="w-4 h-4" />}
+                      {(message.toLowerCase().includes('failed') || message.toLowerCase().includes('error')) && (
+                        <XCircle className="w-4 h-4" />
+                      )}
+
+                      <span>{message}</span>
+                    </div>
+                  ) : (
+                    <>
+                      <CircleAlert className="w-4 h-4" />
+                      <span>Please Select file first</span>
+                    </>
+                  )}
                 </>
               )}
             </button>
@@ -229,13 +265,13 @@ export const SuspendScreenManager = () => {
 
         {/* Col 2 */}
         <div className="flex flex-col h-full min-h-0 space-y-3">
-          <Card title="Current Suspend Screen" className="flex flex-col min-h-0 max-h-full" >
-            <div className={`rounded-lg flex flex-col items-center justify-center text-center transition-all duration-200 relative max-h-full w-fit mx-auto min-h-0 aspect-[954/1696] `}>
-              <div className="relative aspect-[954/1696] max-h-full h-auto w-auto shadow-md min-h-0 bg-slate-100 rounded-lg flex items-center justify-center group mb-4">
+          <Card title="Current Suspend Screen" className="flex flex-col min-h-0 max-h-full items-center flex-1" >
+            <div className={`border-2 border-transparent rounded-lg flex flex-col items-center justify-center text-center relative w-auto mx-auto min-h-0 aspect-[954/1696] flex-1`}>
+              <div className="relative w-full h-full bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden">
                 <img
                   src={currentScreenUrl}
                   alt="No suspend screen found"
-                  className="w-full h-full object-contain rounded max-h-full"
+                  className="w-full h-full object-contain"
                   onError={(e) => {
                     e.currentTarget.src = '';
                     e.currentTarget.alt = 'No suspend screen found';

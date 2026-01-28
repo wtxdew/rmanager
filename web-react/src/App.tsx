@@ -1,14 +1,15 @@
 // @ts-nocheck
 import React, { useState } from 'react';
-import { LayoutDashboard, Image as ImageIcon, FolderOpen, Terminal as TerminalIcon, Save, Command } from 'lucide-react';
+import { LayoutDashboard, Image as ImageIcon, FolderOpen, Terminal as TerminalIcon, Save, Command, FlaskConical } from 'lucide-react';
 import { DashboardHome } from './components/DashboardHome';
 import { SuspendScreenManager } from './components/SuspendScreenManager';
 import { FileManager } from './components/FileManager';
 import { Terminal } from './components/Terminal';
 import { BackupManager } from './components/BackupManager';
+import { TestSpace } from './components/TestSpace';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'suspend' | 'files' | 'terminal' | 'backup'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'suspend' | 'files' | 'terminal' | 'backup' | 'test'>('dashboard');
 
   const renderContent = () => {
     switch (activeTab) {
@@ -17,6 +18,7 @@ export default function App() {
       case 'files': return <FileManager />;
       case 'terminal': return <Terminal />;
       case 'backup': return <BackupManager />;
+      case 'test': return <TestSpace />;
       default: return <DashboardHome />;
     }
   };
@@ -27,6 +29,7 @@ export default function App() {
     { id: 'files', label: 'File Manager', icon: FolderOpen },
     { id: 'terminal', label: 'Web Terminal', icon: TerminalIcon },
     { id: 'backup', label: 'Backup & Restore', icon: Save },
+    { id: 'test', label: 'Test Space', icon: FlaskConical },
   ];
 
   return (
