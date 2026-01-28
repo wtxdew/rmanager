@@ -139,7 +139,16 @@ export const FileManager = () => {
                         <FolderOpen className="w-5 h-5 text-amber-400 fill-amber-100" /> :
                         <FileText className="w-5 h-5 text-slate-400" />
                       }
-                      <span className="text-slate-700 font-medium group-hover:text-slate-900">{file.name}</span>
+                      <div className="flex flex-col items-start gap-0.5">
+
+                        <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900">
+                          {file.name}
+                        </span>
+                        <span className="text-xs text-slate-400 font-mono break-all leading-none">
+                          {file.id}
+                        </span>
+
+                      </div>
                     </td>
                     <td className="py-3 px-2 text-slate-500 uppercase text-xs font-semibold">{file.type}</td>
                     <td className="py-3 px-2 text-slate-500 font-mono text-xs">{file.size ? formatBytes(file.size) : '-'}</td>

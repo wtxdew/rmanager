@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,7 +18,7 @@ import (
 )
 
 // UploadDocument handles document file uploads
-func UploadDocument(cfg *config.Config, idx *metadata.IndexManager) http.HandlerFunc {
+func UploadDocument(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -57,23 +56,21 @@ func UploadDocument(cfg *config.Config, idx *metadata.IndexManager) http.Handler
 		linkPath := filepath.Join(cfg.BooksPath, linkName)
 		if err := os.Symlink(targetFile, linkPath); err != nil {
 			fmt.Printf("Failed to create symlink: %v\n", err)
-		} else {
-			// Add to index
-			if err := idx.Add(id, linkName); err != nil {
-				fmt.Printf("Failed to update index: %v\n", err)
-			}
 		}
 
 		// Create metadata
-		meta := models.RmMetadata{
+		meta := &models.RmMetadata{
 			Deleted:      false,
 			LastModified: fmt.Sprintf("%d000", time.Now().Unix()),
 			Type:         "DocumentType",
 			Version:      1,
 			VisibleName:  baseName,
 		}
-		metaJson, _ := json.Marshal(meta)
-		os.WriteFile(filepath.Join(cfg.XochitlPath, id+".metadata"), metaJson, 0644)
+
+		if err := metadata.SaveMetadata(cfg.XochitlPath, id, meta); err != nil {
+			fmt.Printf("Failed to save metadata: %v\n", err)
+			// Should probably return error here but for consistency with previous flow:
+		}
 
 		// Create content file
 		contentJson := ""
