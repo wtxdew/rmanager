@@ -14,6 +14,7 @@ A web-based configuration and management tool for the reMarkable Paper Pro (RMPP
 ## TODO
 
 - [ ] Random suspend screen replacement
+- [ ] Favorite suspend screens
 - [ ] File upload 
 
 ## Tech Stack
