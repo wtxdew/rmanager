@@ -18,9 +18,11 @@ func GetSystemInfo(cfg *config.Config) (*models.SystemInfo, error) {
 	storageStr := getStorageInfo()
 
 	return &models.SystemInfo{
-		Uptime:  strings.TrimSpace(uptimePart),
-		Storage: storageStr,
-		Model:   cfg.GetDeviceDisplayName(),
+		Uptime:       strings.TrimSpace(uptimePart),
+		Storage:      storageStr,
+		Model:        cfg.GetDeviceDisplayName(),
+		ScreenWidth:  cfg.DeviceSpec.ScreenWidth,
+		ScreenHeight: cfg.DeviceSpec.ScreenHeight,
 	}, nil
 }
 

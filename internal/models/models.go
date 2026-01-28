@@ -2,11 +2,13 @@ package models
 
 // SystemInfo represents system status information
 type SystemInfo struct {
-	Uptime  string `json:"uptime"`
-	Storage string `json:"storage"`
-	Model   string `json:"model"`
-	CPU     string `json:"cpu,omitempty"`
-	Memory  string `json:"memory,omitempty"`
+	Uptime       string `json:"uptime"`
+	Storage      string `json:"storage"`
+	Model        string `json:"model"`
+	CPU          string `json:"cpu,omitempty"`
+	Memory       string `json:"memory,omitempty"`
+	ScreenWidth  int    `json:"screenWidth"`
+	ScreenHeight int    `json:"screenHeight"`
 }
 
 // RmMetadata represents reMarkable document metadata
@@ -57,9 +59,9 @@ type APIResponse struct {
 
 // MonitorData represents real-time monitoring metrics
 type MonitorData struct {
-	CPU       float64 `json:"cpu"`        // CPU usage percentage
-	Memory    float64 `json:"memory"`     // Memory usage percentage
-	MemUsed   int64   `json:"memUsed"`    // Memory used in MB
-	MemTotal  int64   `json:"memTotal"`   // Total memory in MB
-	Timestamp int64   `json:"timestamp"`  // Unix timestamp
+	CPU       float64 `json:"cpu"`       // CPU usage percentage
+	Memory    float64 `json:"memory"`    // Memory usage percentage
+	MemUsed   int64   `json:"memUsed"`   // Memory used in MB
+	MemTotal  int64   `json:"memTotal"`  // Total memory in MB
+	Timestamp int64   `json:"timestamp"` // Unix timestamp
 }

@@ -16,8 +16,8 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
   onCropComplete
 }) => {
   // Constants for crop box (Portrait for reMarkable)
-  const CROP_WIDTH = 954;
-  const CROP_HEIGHT = 1696;
+  // Default fallback values
+  const [cropSize, setCropSize] = useState({ width: 954, height: 1696 });
 
   const [zoom, setZoom] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -28,14 +28,32 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
   const currentPosRef = useRef({ x: 0, y: 0 });
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // Fetch device info on mount
+  useEffect(() => {
+    const fetchDimensions = async () => {
+      try {
+        const response = await fetch('/api/status');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.screenWidth && data.screenHeight) {
+            setCropSize({ width: data.screenWidth, height: data.screenHeight });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch screen dimensions:', error);
+      }
+    };
+    fetchDimensions();
+  }, []);
+
   // Calculate minimum zoom to cover crop area
   const minZoom = useCallback(() => {
     if (!imageElement) return 1;
     return Math.max(
-      CROP_WIDTH / imageElement.naturalWidth,
-      CROP_HEIGHT / imageElement.naturalHeight
+      cropSize.width / imageElement.naturalWidth,
+      cropSize.height / imageElement.naturalHeight
     );
-  }, [imageElement]);
+  }, [imageElement, cropSize]);
 
   // Load image
   useEffect(() => {
@@ -44,8 +62,8 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
       img.onload = () => {
         setImageElement(img);
         const minZ = Math.max(
-          CROP_WIDTH / img.naturalWidth,
-          CROP_HEIGHT / img.naturalHeight
+          cropSize.width / img.naturalWidth,
+          cropSize.height / img.naturalHeight
         );
         setZoom(minZ + 0.2);
         setPosition({ x: 0, y: 0 });
@@ -53,7 +71,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
       };
       img.src = imageSrc;
     }
-  }, [isOpen, imageSrc]);
+  }, [isOpen, imageSrc, cropSize]);
 
   const clamp = (val: number, min: number, max: number) =>
     Math.min(Math.max(val, min), max);
@@ -62,8 +80,8 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
     if (!imageElement) return { limitX: 0, limitY: 0 };
     const scaledW = imageElement.naturalWidth * currentZoom;
     const scaledH = imageElement.naturalHeight * currentZoom;
-    const limitX = (scaledW - CROP_WIDTH) / 2;
-    const limitY = (scaledH - CROP_HEIGHT) / 2;
+    const limitX = (scaledW - cropSize.width) / 2;
+    const limitY = (scaledH - cropSize.height) / 2;
     return { limitX, limitY };
   }, [imageElement]);
 
@@ -111,8 +129,8 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
     if (!imageElement || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
-    canvas.width = CROP_WIDTH;
-    canvas.height = CROP_HEIGHT;
+    canvas.width = cropSize.width;
+    canvas.height = cropSize.height;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -123,15 +141,15 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
     const centerX = imageElement.naturalWidth / 2;
     const centerY = imageElement.naturalHeight / 2;
 
-    const cropX = centerX - (CROP_WIDTH / 2 - position.x) / zoom;
-    const cropY = centerY - (CROP_HEIGHT / 2 - position.y) / zoom;
-    const cropW = CROP_WIDTH / zoom;
-    const cropH = CROP_HEIGHT / zoom;
+    const cropX = centerX - (cropSize.width / 2 - position.x) / zoom;
+    const cropY = centerY - (cropSize.height / 2 - position.y) / zoom;
+    const cropW = cropSize.width / zoom;
+    const cropH = cropSize.height / zoom;
 
     ctx.drawImage(
       imageElement,
       cropX, cropY, cropW, cropH,
-      0, 0, CROP_WIDTH, CROP_HEIGHT
+      0, 0, cropSize.width, cropSize.height
     );
 
     canvas.toBlob((blob) => {
@@ -199,7 +217,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
 
           <div
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-            style={{ width: CROP_WIDTH / 2, height: CROP_HEIGHT / 2 }}
+            style={{ width: cropSize.width / 2, height: cropSize.height / 2 }}
           >
             <div className="w-full h-full shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"></div>
 
