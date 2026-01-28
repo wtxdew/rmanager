@@ -1,7 +1,9 @@
 package config
 
 import (
+	"log"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -78,10 +80,10 @@ func Load() *Config {
 		// Mac development environment - basic testing only
 		cfg.Host = "localhost"
 		cfg.Port = getEnv("PORT", "8080")
-		cfg.ScreenPath = "./testdata/screen"
-		cfg.BooksPath = "./testdata/books"
-		cfg.XochitlPath = "./testdata/xochitl"
-		cfg.HistoryPath = "./testdata/history"
+		cfg.ScreenPath = resolvePath("./testdata/screen")
+		cfg.BooksPath = resolvePath("./testdata/books")
+		cfg.XochitlPath = resolvePath("./testdata/xochitl")
+		cfg.HistoryPath = resolvePath("./testdata/history")
 
 		os.MkdirAll(cfg.HistoryPath, 0755)
 		os.MkdirAll(cfg.BooksPath, 0755)
@@ -186,4 +188,12 @@ func (c *Config) GetDeviceDisplayName() string {
 
 func (c *Config) GetScreenDimensions() (width, height int) {
 	return c.DeviceSpec.ScreenWidth, c.DeviceSpec.ScreenHeight
+}
+
+func resolvePath(path string) string {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		log.Fatalf("无法解析路径 %s: %v", path, err)
+	}
+	return absPath
 }
