@@ -1,5 +1,6 @@
 .DS_Store
 rm-server
+CLAUDE.md
 
 # React build artifacts
 web-react/node_modules/
