@@ -39,7 +39,7 @@ export default function App() {
         <div className="p-6 border-b border-slate-100">
           <div className="flex items-center gap-2 font-bold text-lg tracking-tight text-slate-900">
             <Command className="w-6 h-6" />
-            <span>rM Manager</span>
+            <span>rManager</span>
           </div>
           <p className="text-xs text-slate-500 mt-1">Web Interface v2.0</p>
         </div>

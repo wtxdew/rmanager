@@ -6,9 +6,15 @@ A web-based configuration and management tool for the reMarkable Paper Pro (RMPP
 
 - **Dashboard**: View real-time system statistics (CPU, RAM, Storage, Battery) and device information.
 - **Suspend Screen Manager**: Upload, crop, and apply custom suspend screens. Features a responsive image cropper that handles aspect ratio adjustments automatically.
-- **File Manager**: Browse the device filesystem, manage documents, and upload files.
-- **Web Terminal**: Access a fully functional SSH terminal directly in your browser.
-- **Backup & Restore**: Manage system backups and restore points.
+- **File Manager**: Browse the device filesystem, manage documents, and upload files. (🚧 Under Development)
+- **Web Terminal**: Access a fully functional SSH terminal directly in your browser. (🚧 Under Development)
+- **Backup & Restore**: Manage system backups and restore points. (🚧 Under Development)
+
+
+## TODO
+
+- [ ] Random suspend screen replacement
+- [ ] File upload 
 
 ## Tech Stack
 
