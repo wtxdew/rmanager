@@ -143,71 +143,24 @@ export const SuspendScreenManager = () => {
         }}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-8 w-full h-full px-4 min-h-0">
-        {/* Left Column: Active Screen Preview */}
-        <div className="flex flex-col h-full min-h-0 ">
-          <Card title="Current Suspended Screen" className="flex-1 flex flex-col min-h-0">
-            <div className="flex-1 bg-slate-100 rounded border relative overflow-hidden flex items-center justify-center min-h-0">
-              <img
-                src={currentScreenUrl}
-                alt="Current suspend screen"
-                className="max-w-full max-h-full object-contain"
-                onError={(e) => {
-                  e.currentTarget.src = '';
-                  e.currentTarget.alt = 'No suspend screen found';
-                }}
-              />
-            </div>
-          </Card>
-        </div>
-
-        {/* Center Column: Action Buttons */}
-        <div className="flex items-center justify-center min-h-0">
-          <div className="w-full space-y-3 min-h-0">
-            <button
-              onClick={() => setIsHistoryOpen(true)}
-              className="w-full py-3 text-sm font-bold bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2 min-h-0"
-            >
-              <History className="w-4 h-4" />
-              History Library
-            </button>
-
-            <button
-              onClick={handleUpload}
-              disabled={uploading}
-              className="w-full py-3 text-sm font-bold bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2"
-            >
-              {uploading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload className="w-4 h-4" />
-                  Sync to Device
-                </>
-              )}
-            </button>
-            <p className="text-xs text-slate-400">Clicking sync will replace the device's current suspend screen</p>
-          </div>
-        </div>
-
-        {/* Right Column: Upload / Preview */}
-        <div className="flex flex-col h-full min-h-0">
+      {/* Page Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full h-full px-4 min-h-0">
+        {/* Col 1: Upload Preview */}
+        <div className="flex flex-col h-full min-h-0 space-y-3">
           <Card
             title="Upload New Screen"
-            className="flex-1 flex flex-col min-h-0"
+            className="flex flex-col min-h-0 max-h-full"
           >
             <div
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={handleUploadClick}
-              className={`flex-1 border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center text-center transition-all duration-200 relative min-h-0
-                ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-slate-300 hover:bg-slate-50'}
-                ${!croppedBlob ? 'cursor-pointer' : ''}
-              `}
+              className={`border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-center transition-all duration-200 relative
+    max-h-full w-fit mx-auto min-h-0 aspect-[954/1696]
+    ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-slate-300 hover:bg-slate-50'}
+    ${!croppedBlob ? 'cursor-pointer p-8' : 'p-0'}
+  `}
             >
               <input
                 ref={fileInputRef}
@@ -227,22 +180,19 @@ export const SuspendScreenManager = () => {
 
               {croppedBlob ? (
                 // Preview State
-                <div className="w-full h-full flex flex-col items-center relative z-0 min-h-0">
-                  <div className="flex-1 w-full flex items-center justify-center overflow-hidden mb-4 min-h-0 bg-slate-100">
-                    <img
-                      src={URL.createObjectURL(croppedBlob)}
-                      alt="Cropped preview"
-                      className="w-full h-full object-contain rounded max-h-full"
-                    />
-                    <button
-                      onClick={handleClearPreview}
-                      className="absolute -top-2 -right-2 bg-white text-slate-500 rounded-full p-1 shadow hover:bg-red-50 hover:text-red-500 transition-colors"
-                      title="Clear preview"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
-                  </div>
-
+                <div className="relative aspect-[954/1696] max-h-full h-auto w-auto shadow-md min-h-0 bg-slate-100 rounded-lg flex items-center justify-center group">
+                  <img
+                    src={URL.createObjectURL(croppedBlob)}
+                    alt="Cropped preview"
+                    className="w-full h-full object-contain rounded max-h-full"
+                  />
+                  <button
+                    onClick={handleClearPreview}
+                    className="absolute -top-2 -right-2 bg-white text-slate-500 rounded-full p-1.5 shadow-md hover:text-red-500 transition-colors z-10"
+                    title="Clear preview"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                  </button>
                 </div>
               ) : (
                 // Empty State
@@ -255,18 +205,58 @@ export const SuspendScreenManager = () => {
                 </>
               )}
             </div>
-
-            {message && (
-              <div className={`mt-4 p-3 rounded text-sm flex items-center gap-2 ${message.includes('failed') || message.includes('error')
-                ? 'bg-red-50 text-red-700'
-                : 'bg-blue-50 text-blue-700'
-                }`}>
-                {message}
-              </div>
-            )}
           </Card>
+          <div className="flex flex-col items-center justify-center space-y-3 w-full min-h-0">
+            <button
+              onClick={handleUpload}
+              disabled={uploading || !croppedBlob}
+              className="w-full py-3 text-sm font-bold bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2"
+            >
+              {uploading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4" />
+                  {message ? `${message}` : "Please Select file first"}
+                </>
+              )}
+            </button>
+          </div>
         </div>
-      </div>
+
+        {/* Col 2 */}
+        <div className="flex flex-col h-full min-h-0 space-y-3">
+          <Card title="Current Suspend Screen" className="flex flex-col min-h-0 max-h-full" >
+            <div className={`rounded-lg flex flex-col items-center justify-center text-center transition-all duration-200 relative max-h-full w-fit mx-auto min-h-0 aspect-[954/1696] `}>
+              <div className="relative aspect-[954/1696] max-h-full h-auto w-auto shadow-md min-h-0 bg-slate-100 rounded-lg flex items-center justify-center group mb-4">
+                <img
+                  src={currentScreenUrl}
+                  alt="No suspend screen found"
+                  className="w-full h-full object-contain rounded max-h-full"
+                  onError={(e) => {
+                    e.currentTarget.src = '';
+                    e.currentTarget.alt = 'No suspend screen found';
+                  }}
+                />
+              </div>
+            </div>
+          </Card>
+
+          <div className="flex items-center justify-center min-h-0">
+            <button
+              onClick={() => setIsHistoryOpen(true)}
+              className="w-full py-3 text-sm font-bold bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2"
+            >
+              <History className="w-4 h-4" />
+              History Library
+            </button>
+          </div>
+
+        </div>
+      </div >
     </>
   );
 };
