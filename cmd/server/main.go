@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"rmanager/internal/config"
+	"rmanager/internal/metadata"
 	"rmanager/internal/router"
 )
 
@@ -34,8 +35,20 @@ func main() {
 			cfg.DeviceSpec.PPI)
 	}
 
+	// Initialize metadata index
+	idx := metadata.NewIndexManager(cfg.AppPath)
+	if err := idx.Load(); err != nil {
+		log.Printf("[WARN] Failed to load metadata index: %v", err)
+	}
+
+	// Rebuild index to ensure consistency with disk
+	log.Println("[INFO] Rebuilding metadata index...")
+	if err := idx.Rebuild(cfg.BooksPath, cfg.XochitlPath); err != nil {
+		log.Printf("[WARN] Failed to rebuild metadata index: %v", err)
+	}
+
 	// Setup router with middleware
-	r := router.Setup(cfg)
+	r := router.Setup(cfg, idx)
 
 	addr := ":" + cfg.Port
 	log.Printf("[INFO] Server starting on http://%s%s", cfg.Host, addr)

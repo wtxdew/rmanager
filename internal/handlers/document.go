@@ -10,14 +10,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"rmanager/internal/config"
+	"rmanager/internal/metadata"
 	"rmanager/internal/models"
 	"rmanager/internal/platform"
+
+	"github.com/google/uuid"
 )
 
 // UploadDocument handles document file uploads
-func UploadDocument(cfg *config.Config) http.HandlerFunc {
+func UploadDocument(cfg *config.Config, idx *metadata.IndexManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -51,9 +53,15 @@ func UploadDocument(cfg *config.Config) http.HandlerFunc {
 		io.Copy(dst, file)
 
 		// Create symlink
-		linkName := filepath.Join(cfg.BooksPath, header.Filename)
-		if err := os.Symlink(targetFile, linkName); err != nil {
+		linkName := header.Filename
+		linkPath := filepath.Join(cfg.BooksPath, linkName)
+		if err := os.Symlink(targetFile, linkPath); err != nil {
 			fmt.Printf("Failed to create symlink: %v\n", err)
+		} else {
+			// Add to index
+			if err := idx.Add(id, linkName); err != nil {
+				fmt.Printf("Failed to update index: %v\n", err)
+			}
 		}
 
 		// Create metadata

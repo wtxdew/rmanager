@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"rmanager/internal/config"
+	"rmanager/internal/metadata"
 	"rmanager/internal/models"
 )
 
@@ -100,8 +101,8 @@ func ListDocuments(cfg *config.Config) ([]models.DocumentFile, error) {
 	return docs, nil
 }
 
-// DeleteDocument marks a document as deleted in metadata
-func DeleteDocument(cfg *config.Config, id string) error {
+// DeleteDocument marks a document as deleted in metadata and removes symlink
+func DeleteDocument(cfg *config.Config, idx *metadata.IndexManager, id string) error {
 	metaPath := filepath.Join(cfg.XochitlPath, id+".metadata")
 
 	data, err := os.ReadFile(metaPath)
@@ -127,11 +128,24 @@ func DeleteDocument(cfg *config.Config, id string) error {
 		return fmt.Errorf("failed to write metadata: %w", err)
 	}
 
+	// Remove symlink using IndexManager
+	if linkName, ok := idx.Get(id); ok {
+		fullLinkPath := filepath.Join(cfg.BooksPath, linkName)
+		// Remove the symlink file
+		if err := os.Remove(fullLinkPath); err != nil && !os.IsNotExist(err) {
+			fmt.Printf("Warning: failed to remove symlink %s: %v\n", fullLinkPath, err)
+		}
+		// Remove from index
+		if err := idx.Remove(id); err != nil {
+			fmt.Printf("Warning: failed to remove from index: %v\n", err)
+		}
+	}
+
 	return nil
 }
 
-// RenameDocument updates the visible name in metadata
-func RenameDocument(cfg *config.Config, id, newName string) error {
+// RenameDocument updates the visible name in metadata and renames symlink
+func RenameDocument(cfg *config.Config, idx *metadata.IndexManager, id, newName string) error {
 	if newName == "" {
 		return fmt.Errorf("new name cannot be empty")
 	}
@@ -148,6 +162,7 @@ func RenameDocument(cfg *config.Config, id, newName string) error {
 		return fmt.Errorf("failed to parse metadata: %w", err)
 	}
 
+	oldName := meta.VisibleName
 	meta.VisibleName = newName
 	meta.MetadataModified = true
 	meta.Modified = true
@@ -159,6 +174,35 @@ func RenameDocument(cfg *config.Config, id, newName string) error {
 
 	if err := os.WriteFile(metaPath, newData, 0644); err != nil {
 		return fmt.Errorf("failed to write metadata: %w", err)
+	}
+
+	// Rename symlink using IndexManager
+	if linkName, ok := idx.Get(id); ok {
+		// Existing link path
+		oldLinkPath := filepath.Join(cfg.BooksPath, linkName)
+
+		// Determine extension from old link name (to preserve file extension in symlink)
+		ext := filepath.Ext(linkName)
+
+		// New link name
+		newLinkName := newName + ext
+		newLinkPath := filepath.Join(cfg.BooksPath, newLinkName)
+
+		// Rename the symlink file
+		if err := os.Rename(oldLinkPath, newLinkPath); err != nil {
+			fmt.Printf("Warning: failed to rename symlink from %s to %s: %v\n", oldLinkPath, newLinkPath, err)
+		} else {
+			// Update index
+			if err := idx.Add(id, newLinkName); err != nil {
+				fmt.Printf("Warning: failed to update index: %v\n", err)
+			}
+		}
+	} else {
+		// If not in index (maybe older file), try to construct it or just warn
+		// For now, let's assume if it's not in index, we might not have a symlink or it's untracked
+		// But we should probably try to update it if it existed.
+		// Given we rebuild index on startup, it should be there.
+		fmt.Printf("Warning: document %s not found in index during rename from %s to %s\n", id, oldName, newName)
 	}
 
 	return nil

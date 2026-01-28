@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"rmanager/internal/config"
+	"rmanager/internal/metadata"
 	"rmanager/internal/models"
 	"rmanager/internal/services"
 )
@@ -33,7 +34,7 @@ func ListDocuments(cfg *config.Config) http.HandlerFunc {
 }
 
 // DeleteDocument marks a document as deleted
-func DeleteDocument(cfg *config.Config) http.HandlerFunc {
+func DeleteDocument(cfg *config.Config, idx *metadata.IndexManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.URL.Query().Get("id")
 		if id == "" {
@@ -41,7 +42,7 @@ func DeleteDocument(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		err := services.DeleteDocument(cfg, id)
+		err := services.DeleteDocument(cfg, idx, id)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -56,7 +57,7 @@ func DeleteDocument(cfg *config.Config) http.HandlerFunc {
 }
 
 // RenameDocument updates the document name
-func RenameDocument(cfg *config.Config) http.HandlerFunc {
+func RenameDocument(cfg *config.Config, idx *metadata.IndexManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			ID      string `json:"id"`
@@ -73,7 +74,7 @@ func RenameDocument(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		err := services.RenameDocument(cfg, req.ID, req.NewName)
+		err := services.RenameDocument(cfg, idx, req.ID, req.NewName)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

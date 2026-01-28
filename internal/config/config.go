@@ -62,6 +62,7 @@ var deviceSpecs = map[DeviceModel]DeviceSpec{
 type Config struct {
 	Host        string
 	Port        string
+	AppPath     string // App root path (e.g. /home/root/rm-manager/)
 	ScreenPath  string
 	BooksPath   string
 	HistoryPath string
@@ -80,11 +81,13 @@ func Load() *Config {
 		// Mac development environment - basic testing only
 		cfg.Host = "localhost"
 		cfg.Port = getEnv("PORT", "8080")
+		cfg.AppPath = resolvePath("./testdata")
 		cfg.ScreenPath = resolvePath("./testdata/screen")
 		cfg.BooksPath = resolvePath("./testdata/books")
 		cfg.XochitlPath = resolvePath("./testdata/xochitl")
 		cfg.HistoryPath = resolvePath("./testdata/history")
 
+		os.MkdirAll(cfg.AppPath, 0755)
 		os.MkdirAll(cfg.HistoryPath, 0755)
 		os.MkdirAll(cfg.BooksPath, 0755)
 		os.MkdirAll(cfg.ScreenPath, 0755)
@@ -102,10 +105,16 @@ func Load() *Config {
 		// reMarkable device environment
 		cfg.Host = "10.11.99.1"
 		cfg.Port = "8080"
+		cfg.AppPath = "/home/root/rm-manager/"
 		cfg.ScreenPath = "/usr/share/remarkable/"
 		cfg.XochitlPath = "/home/root/.local/share/remarkable/xochitl"
 		cfg.HistoryPath = "/home/root/rm-manager/history/"
 		cfg.BooksPath = "/home/root/rm-manager/books/"
+
+		// Ensure AppPath exists
+		os.MkdirAll(cfg.AppPath, 0755)
+		os.MkdirAll(cfg.HistoryPath, 0755)
+		os.MkdirAll(cfg.BooksPath, 0755)
 
 		cfg.DeviceSpec = detectDevice()
 	}

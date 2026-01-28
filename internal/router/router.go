@@ -5,13 +5,14 @@ import (
 
 	"rmanager/internal/config"
 	"rmanager/internal/handlers"
+	"rmanager/internal/metadata"
 	"rmanager/internal/middleware"
 
 	"github.com/go-chi/chi/v5"
 )
 
 // Setup configures and returns the HTTP router with all routes and middleware
-func Setup(cfg *config.Config) http.Handler {
+func Setup(cfg *config.Config, idx *metadata.IndexManager) http.Handler {
 	r := chi.NewRouter()
 
 	// Global middleware
@@ -32,15 +33,15 @@ func Setup(cfg *config.Config) http.Handler {
 		r.Get("/history-suspend/{filename}", handlers.GetHistoryItem(cfg))
 
 		// Document endpoints
-		r.Post("/upload-doc", handlers.UploadDocument(cfg))
+		r.Post("/upload-doc", handlers.UploadDocument(cfg, idx))
 		r.Post("/restart-xochitl", handlers.RestartXochitl(cfg))
 
 		// File manager endpoints
 		r.Get("/files", handlers.ListDocuments(cfg))
 		r.Get("/files/search", handlers.SearchDocuments(cfg))
 		r.Get("/files/info", handlers.GetDocumentInfo(cfg))
-		r.Delete("/files/delete", handlers.DeleteDocument(cfg))
-		r.Put("/files/rename", handlers.RenameDocument(cfg))
+		r.Delete("/files/delete", handlers.DeleteDocument(cfg, idx))
+		r.Put("/files/rename", handlers.RenameDocument(cfg, idx))
 
 		// WebSSH endpoint
 		r.Get("/ssh", handlers.HandleWebSSH)
