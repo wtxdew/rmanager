@@ -103,7 +103,7 @@ func ListDocuments(cfg *config.Config) ([]models.DocumentFile, error) {
 
 // DeleteDocument marks a document as deleted in metadata and removes symlink
 func DeleteDocument(cfg *config.Config, id string) error {
-	return metadata.Delete(cfg.XochitlPath, cfg.BooksPath, id)
+	return metadata.DeletePermanently(cfg, id)
 }
 
 // RenameDocument updates the visible name in metadata and renames symlink
@@ -111,7 +111,7 @@ func RenameDocument(cfg *config.Config, id, newName string) error {
 	if newName == "" {
 		return fmt.Errorf("new name cannot be empty")
 	}
-	return metadata.UpdateName(cfg.XochitlPath, cfg.BooksPath, id, newName)
+	return metadata.UpdateName(cfg, id, newName)
 }
 
 // GetDocumentInfo returns detailed information about a document

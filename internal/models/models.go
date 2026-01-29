@@ -25,6 +25,10 @@ type RmMetadata struct {
 	VisibleName      string `json:"visibleName"`
 }
 
+type RmContent struct {
+	FileType string `json:"fileType"` // pdf, epub, notebook
+}
+
 // DocumentFile represents a file in the file manager
 type DocumentFile struct {
 	ID           string `json:"id"`

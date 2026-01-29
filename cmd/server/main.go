@@ -35,10 +35,10 @@ func main() {
 			cfg.DeviceSpec.PPI)
 	}
 
-	// Sync symlinks to ensure consistency with metadata
-	log.Println("[INFO] Syncing symlinks...")
-	if err := metadata.SyncSymlinks(cfg.XochitlPath, cfg.BooksPath); err != nil {
-		log.Printf("[WARN] Failed to sync symlinks: %v", err)
+	// Sync library to ensure consistency with metadata
+	log.Println("[INFO] Syncing library...")
+	if err := metadata.SyncLibrary(cfg); err != nil {
+		log.Printf("[WARN] Failed to sync library: %v", err)
 	}
 
 	// Setup router with middleware
