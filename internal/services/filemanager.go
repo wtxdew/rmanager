@@ -101,8 +101,12 @@ func ListDocuments(cfg *config.Config) ([]models.DocumentFile, error) {
 	return docs, nil
 }
 
-// DeleteDocument marks a document as deleted in metadata and removes symlink
-func DeleteDocument(cfg *config.Config, id string) error {
+func MoveDocumentToTrash(cfg *config.Config, id string) error {
+	return metadata.MoveToTrash(cfg.XochitlPath, id)
+}
+
+// PermanentlyDeleteDocument directly delete document and create tombstone
+func PermanentlyDeleteDocument(cfg *config.Config, id string) error {
 	return metadata.DeletePermanently(cfg, id)
 }
 

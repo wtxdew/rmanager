@@ -158,6 +158,9 @@ func DeletePermanently(cfg *config.Config, id string) error {
 	}
 	os.RemoveAll(filepath.Join(cfg.XochitlPath, id))
 
+	// Create tombstone
+	os.WriteFile(filepath.Join(cfg.XochitlPath, id+".tombstone"), []byte(time.Now().Format("Mon Jan 2 15:04:05 2006")), 0644)
+
 	return nil
 }
 
