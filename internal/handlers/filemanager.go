@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"rmanager/internal/config"
@@ -41,7 +42,7 @@ func DeleteDocument(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		err := services.DeleteDocument(cfg, id)
+		err := services.PermanentlyDeleteDocument(cfg, id)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -134,4 +135,40 @@ func SearchDocuments(cfg *config.Config) http.HandlerFunc {
 			Data:    docs,
 		})
 	}
+}
+
+func UploadDocument(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		r.ParseMultipartForm(1000 << 20)
+		file, header, err := r.FormFile("file")
+		if err != nil {
+			writeJSONError(w, 400, "Failed to read file")
+			return
+		}
+		defer file.Close()
+
+		id, err := services.UploadDocument(cfg, file, header)
+		if err != nil {
+			writeJSONError(w, 500, err.Error())
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(models.APIResponse{
+			Code:    200,
+			Message: fmt.Sprintf("Successfully uploaded: %s (ID: %s)", header.Filename, id),
+		})
+	}
+}
+
+// 辅助函数：统一错误返回
+func writeJSONError(w http.ResponseWriter, code int, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(models.APIResponse{Code: code, Message: msg})
 }

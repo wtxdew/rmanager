@@ -3,7 +3,6 @@ package services
 import (
 	"fmt"
 	"strings"
-	"syscall"
 
 	"rmanager/internal/config"
 	"rmanager/internal/models"
@@ -13,12 +12,19 @@ import (
 // GetSystemInfo retrieves current system information
 func GetSystemInfo(cfg *config.Config) (*models.SystemInfo, error) {
 	uptimeStr, _ := platform.GetUptime(cfg)
-	uptimePart := parseUptime(uptimeStr)
+	var storageStr string
 
-	storageStr := getStorageInfo()
+	used, total, err := platform.GetDiskUsage(cfg, "/home")
+	if err != nil {
+		storageStr = "Unable to read"
+	} else {
+		storageStr = fmt.Sprintf("Usage %.2f GB / Total %.2f GB",
+			float64(used)/1024/1024/1024,
+			float64(total)/1024/1024/1024)
+	}
 
 	return &models.SystemInfo{
-		Uptime:       strings.TrimSpace(uptimePart),
+		Uptime:       strings.TrimSpace(parseUptime(uptimeStr)),
 		Storage:      storageStr,
 		Model:        cfg.GetDeviceDisplayName(),
 		ScreenWidth:  cfg.DeviceSpec.ScreenWidth,
@@ -35,20 +41,4 @@ func parseUptime(raw string) string {
 		}
 	}
 	return raw
-}
-
-func getStorageInfo() string {
-	var stat syscall.Statfs_t
-	err := syscall.Statfs("/home", &stat)
-	if err != nil {
-		return "Unable to read"
-	}
-
-	all := stat.Blocks * uint64(stat.Bsize)
-	free := stat.Bavail * uint64(stat.Bsize)
-	used := all - free
-
-	return fmt.Sprintf("Usage %.2f GB / Total %.2f GB",
-		float64(used)/1024/1024/1024,
-		float64(all)/1024/1024/1024)
 }

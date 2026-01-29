@@ -60,6 +60,28 @@ func GetOrigExtension(xochitlPath, id string) (string, error) {
 	return "", nil
 }
 
+func CreateMetadata(xochitlPath, id string, meta *models.RmMetadata) error {
+	metaJson, err := json.MarshalIndent(meta, "", " ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(xochitlPath, id+".metadata"), metaJson, 0644)
+}
+
+func CreateContent(xochitlPath, id, ext string) error {
+	contentJson := ""
+
+	switch ext {
+	case ".pdf":
+		contentJson = `{"extraMetadata":{},"fileType":"pdf","fontName":"","lineHeight":-1,"pageCount":1,"textScale":1}`
+		os.MkdirAll(filepath.Join(xochitlPath, id+".thumbnails"), 0755)
+	case ".epub":
+		contentJson = `{"fileType":"epub"}`
+	}
+
+	return os.WriteFile(filepath.Join(xochitlPath, id+".content"), []byte(contentJson), 0644)
+}
+
 func UpdateMetadata(xochitlPath, id string, updateFn func(*models.RmMetadata)) error {
 	meta, err := GetMetadata(xochitlPath, id)
 	if err != nil {

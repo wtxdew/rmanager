@@ -3,15 +3,20 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"rmanager/internal/config"
 	"rmanager/internal/metadata"
 	"rmanager/internal/models"
+
+	"github.com/google/uuid"
 )
 
 // ListDocuments returns all non-deleted documents from xochitl directory
@@ -195,4 +200,61 @@ func SearchDocuments(cfg *config.Config, query string) ([]models.DocumentFile, e
 	}
 
 	return results, nil
+}
+
+// UploadDocument handles the business logic of saving a file
+func UploadDocument(cfg *config.Config, file multipart.File, header *multipart.FileHeader) (string, error) {
+	id := uuid.New().String()
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	if ext != ".pdf" && ext != ".epub" {
+		return "", fmt.Errorf("only support PDF/EPUB")
+	}
+
+	targetPath := filepath.Join(cfg.XochitlPath, id+ext)
+
+	// Save File
+	dst, err := os.Create(targetPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create file: %w", err)
+	}
+	_, err = io.Copy(dst, file)
+	dst.Close()
+	if err != nil {
+		os.Remove(targetPath)
+		return "", fmt.Errorf("failed to save file content: %w", err)
+	}
+
+	// 定义回滚函数：如果在接下来的步骤失败了，把物理文件删掉
+	defer func() {
+		if err != nil {
+			os.Remove(targetPath)
+			// 也可以顺便删掉生成的 .metadata 等
+		}
+	}()
+
+	// Create Metadata
+	meta := &models.RmMetadata{
+		Deleted:      false,
+		LastModified: strconv.FormatInt(time.Now().UnixMilli(), 10),
+		Type:         "DocumentType",
+		Version:      1,
+		VisibleName:  strings.TrimSuffix(header.Filename, ext),
+	}
+	if err = metadata.CreateMetadata(cfg.XochitlPath, id, meta); err != nil {
+		return "", fmt.Errorf("failed to create metadata: %w", err)
+	}
+
+	// Create Content
+	if err = metadata.CreateContent(cfg.XochitlPath, id, ext); err != nil {
+		return "", fmt.Errorf("failed to create content: %w", err)
+	}
+
+	// Create Hard Link
+	linkPath := filepath.Join(cfg.BooksPath, header.Filename)
+	os.Remove(linkPath)
+	if err = os.Link(targetPath, linkPath); err != nil {
+		return "", fmt.Errorf("failed to create hard link: %w", err)
+	}
+
+	return id, nil
 }
