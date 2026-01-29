@@ -163,3 +163,17 @@ func GetMemoryStats(cfg *config.Config) (int64, int64, float64) {
 
 	return memUsedMB, memTotalMB, memPercent
 }
+
+func CheckIsFile(path string) (bool, error) {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if info.IsDir() {
+		return false, nil
+	}
+	return true, nil
+}
