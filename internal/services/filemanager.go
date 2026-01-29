@@ -224,11 +224,9 @@ func UploadDocument(cfg *config.Config, file multipart.File, header *multipart.F
 		return "", fmt.Errorf("failed to save file content: %w", err)
 	}
 
-	// 定义回滚函数：如果在接下来的步骤失败了，把物理文件删掉
 	defer func() {
 		if err != nil {
 			os.Remove(targetPath)
-			// 也可以顺便删掉生成的 .metadata 等
 		}
 	}()
 
