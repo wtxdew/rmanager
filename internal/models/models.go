@@ -69,3 +69,9 @@ type MonitorData struct {
 	MemTotal  int64   `json:"memTotal"`  // Total memory in MB
 	Timestamp int64   `json:"timestamp"` // Unix timestamp
 }
+
+// SuspendHistoryItem represents a suspend screen history item
+type SuspendHistoryItem struct {
+	Filename string `json:"filename"`
+	Url      string `json:"url"`
+}

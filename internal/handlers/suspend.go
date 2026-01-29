@@ -1,15 +1,10 @@
 package handlers
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
+	"errors"
 	"net/http"
-	"os"
-	"path/filepath"
 	"rmanager/internal/config"
-	"rmanager/internal/platform"
-	"time"
+	"rmanager/internal/services"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -18,95 +13,56 @@ import (
 func UploadSuspendScreen(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			http.Error(w, "POST Support ONLY", http.StatusMethodNotAllowed)
+			writeError(w, http.StatusMethodNotAllowed, "POST Support ONLY")
 			return
 		}
 
 		r.ParseMultipartForm(10 << 20)
 		file, _, err := r.FormFile("image")
 		if err != nil {
-			http.Error(w, "Failed to read the file", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "Failed to read the file")
 			return
 		}
 		defer file.Close()
 
-		// Use platform-safe mount operation
-		platform.Mount(cfg, "rw")
-		os.MkdirAll(cfg.ScreenPath, 0755)
-
-		dst, err := os.Create(filepath.Join(cfg.ScreenPath, "suspended.png"))
+		err = services.UploadScreen(cfg, file)
 		if err != nil {
-			platform.Mount(cfg, "ro")
-			http.Error(w, "Unable to write: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "Unable to upload screen: "+err.Error())
 			return
 		}
-		defer dst.Close()
 
-		if _, err := io.Copy(dst, file); err != nil {
-			platform.Mount(cfg, "ro")
-			http.Error(w, "Failed to save image: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-		file.Seek(0, 0)
-		SaveToHistoryLibrary(cfg, file)
-		platform.Mount(cfg, "ro")
-
-		fmt.Fprint(w, "Successfully changed the suspend screen!")
+		writeJSON(w, http.StatusOK, nil, "Successfully uploaded the suspend screen!")
 	}
 }
 
 // GetCurrentSuspend serves the current suspend screen image
 func GetCurrentSuspend(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		imagePath, err := services.GetCurrentSuspendPath(cfg)
+		if err != nil {
+			if errors.Is(err, services.ErrFileNotFound) {
+				writeError(w, http.StatusNotFound, "Suspend screen not found")
+			} else {
+				writeError(w, http.StatusInternalServerError, err.Error())
+			}
+			return
+		}
+
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-		http.ServeFile(w, r, filepath.Join(cfg.ScreenPath, "suspended.png"))
+		http.ServeFile(w, r, imagePath)
 	}
-}
-
-func SaveToHistoryLibrary(cfg *config.Config, image io.Reader) {
-	// uuid + .png
-	// dst, err := os.Create(filepath.Join(cfg.HistoryPath, uuid.New().String()+".png"))
-	// timestamp + .png
-	filename := time.Now().Format("20060102-150405") + ".png"
-	dst, _ := os.Create(filepath.Join(cfg.HistoryPath, filename))
-	defer dst.Close()
-
-	io.Copy(dst, image)
 }
 
 func GetHistoryLibrary(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
 
-		files, err := os.ReadDir(cfg.HistoryPath)
+		historyItems, err := services.GetHistoryLibrary(cfg)
 		if err != nil {
-			http.Error(w, "Unable to read: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "Unable to get history: "+err.Error())
 			return
 		}
 
-		type HistoryItem struct {
-			Filename string `json:"filename"`
-			Url      string `json:"url"`
-		}
-
-		var historyItems []HistoryItem
-		for _, file := range files {
-			if file.IsDir() || filepath.Ext(file.Name()) != ".png" {
-				continue
-			}
-			historyItems = append(historyItems, HistoryItem{
-				Filename: file.Name(),
-				Url:      "/api/history-suspend/" + file.Name(),
-			})
-		}
-
-		// Sort by filename (timestamp) descending
-		for i := len(historyItems)/2 - 1; i >= 0; i-- {
-			opp := len(historyItems) - 1 - i
-			historyItems[i], historyItems[opp] = historyItems[opp], historyItems[i]
-		}
-
-		json.NewEncoder(w).Encode(historyItems)
+		writeJSON(w, http.StatusOK, historyItems, "Successfully retrieved history library!")
 	}
 }
 
@@ -114,18 +70,21 @@ func GetHistoryItem(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		filename := chi.URLParam(r, "filename")
 		if filename == "" {
-			http.Error(w, "Filename is required", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "Filename is required")
 			return
 		}
 
-		// Clean and validate filename to prevent directory traversal
-		cleanPath := filepath.Base(filename)
-		if cleanPath == "/" || cleanPath == "." || cleanPath == ".." {
-			http.Error(w, "Invalid filename", http.StatusBadRequest)
+		filePath, err := services.GetHistoryFilePath(cfg, filename)
+		if err != nil {
+			if errors.Is(err, services.ErrFileNotFound) {
+				writeError(w, http.StatusNotFound, "History item not found")
+			} else {
+				writeError(w, http.StatusBadRequest, err.Error())
+			}
 			return
 		}
 
-		w.Header().Set("Cache-Control", "public, max-age=31536000") // Cache history items aggressively
-		http.ServeFile(w, r, filepath.Join(cfg.HistoryPath, cleanPath))
+		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		http.ServeFile(w, r, filePath)
 	}
 }
