@@ -21,6 +21,7 @@ func Setup(cfg *config.Config) http.Handler {
 	r.Use(middleware.CORS().Handler)
 
 	screenSvc := services.NewScreenService(cfg)
+	fileSvc := services.NewFileManager(cfg)
 
 	// API routes (must be before static files)
 	r.Route("/api", func(r chi.Router) {
@@ -35,15 +36,15 @@ func Setup(cfg *config.Config) http.Handler {
 		r.Get("/history-suspend/{filename}", handlers.GetHistoryItem(screenSvc))
 
 		// Document endpoints
-		r.Post("/upload-doc", handlers.UploadDocument(cfg))
+		r.Post("/upload-doc", handlers.UploadDocument(fileSvc))
 		r.Post("/restart-xochitl", handlers.RestartXochitl(cfg))
 
 		// File manager endpoints
-		r.Get("/files", handlers.ListDocuments(cfg))
-		r.Get("/files/search", handlers.SearchDocuments(cfg))
-		r.Get("/files/info", handlers.GetDocumentInfo(cfg))
-		r.Delete("/files/delete", handlers.DeleteDocument(cfg))
-		r.Put("/files/rename", handlers.RenameDocument(cfg))
+		r.Get("/files", handlers.ListDocuments(fileSvc))
+		r.Get("/files/search", handlers.SearchDocuments(fileSvc))
+		r.Get("/files/info", handlers.GetDocumentInfo(fileSvc))
+		r.Delete("/files/delete", handlers.DeleteDocument(fileSvc))
+		r.Put("/files/rename", handlers.RenameDocument(fileSvc))
 
 		// WebSSH endpoint
 		r.Get("/ssh", handlers.HandleWebSSH)

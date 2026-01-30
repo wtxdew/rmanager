@@ -5,15 +5,14 @@ import (
 	"fmt"
 	"net/http"
 
-	"rmanager/internal/config"
 	"rmanager/internal/models"
 	"rmanager/internal/services"
 )
 
 // ListDocuments returns all documents in the file manager
-func ListDocuments(cfg *config.Config) http.HandlerFunc {
+func ListDocuments(fileSvc *services.FileManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		docs, err := services.ListDocuments(cfg)
+		docs, err := fileSvc.ListDocuments()
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -34,7 +33,7 @@ func ListDocuments(cfg *config.Config) http.HandlerFunc {
 }
 
 // DeleteDocument marks a document as deleted
-func DeleteDocument(cfg *config.Config) http.HandlerFunc {
+func DeleteDocument(fileSvc *services.FileManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.URL.Query().Get("id")
 		if id == "" {
@@ -42,7 +41,7 @@ func DeleteDocument(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		err := services.DeleteDocument(cfg, id)
+		err := fileSvc.DeleteDocument(id)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -57,7 +56,7 @@ func DeleteDocument(cfg *config.Config) http.HandlerFunc {
 }
 
 // RenameDocument updates the document name
-func RenameDocument(cfg *config.Config) http.HandlerFunc {
+func RenameDocument(fileSvc *services.FileManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			ID      string `json:"id"`
@@ -74,7 +73,7 @@ func RenameDocument(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		err := services.RenameDocument(cfg, req.ID, req.NewName)
+		err := fileSvc.RenameDocument(req.ID, req.NewName)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -89,7 +88,7 @@ func RenameDocument(cfg *config.Config) http.HandlerFunc {
 }
 
 // GetDocumentInfo returns detailed information about a document
-func GetDocumentInfo(cfg *config.Config) http.HandlerFunc {
+func GetDocumentInfo(fileSvc *services.FileManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.URL.Query().Get("id")
 		if id == "" {
@@ -97,7 +96,7 @@ func GetDocumentInfo(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		info, err := services.GetDocumentInfo(cfg, id)
+		info, err := fileSvc.GetDocumentInfo(id)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -113,11 +112,11 @@ func GetDocumentInfo(cfg *config.Config) http.HandlerFunc {
 }
 
 // SearchDocuments searches documents by query
-func SearchDocuments(cfg *config.Config) http.HandlerFunc {
+func SearchDocuments(fileSvc *services.FileManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query().Get("q")
 
-		docs, err := services.SearchDocuments(cfg, query)
+		docs, err := fileSvc.SearchDocuments(query)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -137,7 +136,7 @@ func SearchDocuments(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
-func UploadDocument(cfg *config.Config) http.HandlerFunc {
+func UploadDocument(fileSvc *services.FileManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -152,7 +151,7 @@ func UploadDocument(cfg *config.Config) http.HandlerFunc {
 		}
 		defer file.Close()
 
-		id, err := services.UploadDocument(cfg, file, header)
+		id, err := fileSvc.UploadDocument(file, header)
 		if err != nil {
 			writeError(w, 500, err.Error())
 			return
