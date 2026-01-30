@@ -1,7 +1,6 @@
 package services
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -83,8 +82,6 @@ func GetCurrentSuspendPath(cfg *config.Config) (string, error) {
 	return path, nil
 }
 
-var ErrFileNotFound = errors.New("file not found")
-
 func getValidatedPath(basePath, filename string) (string, error) {
 	cleanName := filepath.Base(filename)
 	fullPath := filepath.Join(basePath, cleanName)
@@ -94,7 +91,7 @@ func getValidatedPath(basePath, filename string) (string, error) {
 		return "", fmt.Errorf("system error: %w", err)
 	}
 	if !exists {
-		return "", ErrFileNotFound
+		return "", models.ErrFileNotFound
 	}
 
 	return fullPath, nil

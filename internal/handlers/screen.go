@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"rmanager/internal/config"
+	"rmanager/internal/models"
 	"rmanager/internal/services"
 
 	"github.com/go-chi/chi/v5"
@@ -40,7 +41,7 @@ func GetCurrentSuspend(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		imagePath, err := services.GetCurrentSuspendPath(cfg)
 		if err != nil {
-			if errors.Is(err, services.ErrFileNotFound) {
+			if errors.Is(err, models.ErrFileNotFound) {
 				writeError(w, http.StatusNotFound, "Suspend screen not found")
 			} else {
 				writeError(w, http.StatusInternalServerError, err.Error())
@@ -76,7 +77,7 @@ func GetHistoryItem(cfg *config.Config) http.HandlerFunc {
 
 		filePath, err := services.GetHistoryFilePath(cfg, filename)
 		if err != nil {
-			if errors.Is(err, services.ErrFileNotFound) {
+			if errors.Is(err, models.ErrFileNotFound) {
 				writeError(w, http.StatusNotFound, "History item not found")
 			} else {
 				writeError(w, http.StatusBadRequest, err.Error())
