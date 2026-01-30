@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"rmanager/internal/config"
-	"rmanager/internal/metadata"
 	"rmanager/internal/router"
+	"rmanager/internal/services"
 )
 
 func main() {
@@ -37,7 +37,7 @@ func main() {
 
 	// Sync library to ensure consistency with metadata
 	log.Println("[INFO] Syncing library...")
-	if err := metadata.SyncLibrary(cfg); err != nil {
+	if err := services.SyncLibrary(cfg); err != nil {
 		log.Printf("[WARN] Failed to sync library: %v", err)
 	}
 

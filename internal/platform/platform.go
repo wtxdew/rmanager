@@ -2,6 +2,7 @@ package platform
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -188,4 +189,28 @@ func CheckIsFile(path string) (bool, error) {
 		return false, nil
 	}
 	return true, nil
+}
+
+func GetLinkCount(path string) int {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return 0
+	}
+	stat, ok := fi.Sys().(*syscall.Stat_t)
+	if !ok {
+		return 0
+	}
+	return int(stat.Nlink)
+}
+
+func GetInode(path string) (uint64, error) {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return 0, err
+	}
+	stat, ok := fileInfo.Sys().(*syscall.Stat_t)
+	if !ok {
+		return 0, fmt.Errorf("not a unix system")
+	}
+	return stat.Ino, nil
 }

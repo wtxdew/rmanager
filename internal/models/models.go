@@ -27,7 +27,12 @@ type RmMetadata struct {
 }
 
 type RmContent struct {
-	FileType string `json:"fileType"` // pdf, epub, notebook
+	FileType      string                 `json:"fileType"` // pdf, epub, notebook
+	ExtraMetadata map[string]interface{} `json:"extraMetadata,omitempty"`
+	FontName      string                 `json:"fontName,omitempty"`
+	LineHeight    int                    `json:"lineHeight,omitempty"`
+	PageCount     int                    `json:"pageCount,omitempty"`
+	TextScale     int                    `json:"textScale,omitempty"`
 }
 
 // DocumentFile represents a file in the file manager

@@ -42,7 +42,7 @@ func DeleteDocument(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		err := services.PermanentlyDeleteDocument(cfg, id)
+		err := services.DeleteDocument(cfg, id)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

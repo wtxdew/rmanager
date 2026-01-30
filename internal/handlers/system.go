@@ -1,8 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
-	"fmt"
+	"log"
 	"net/http"
 
 	"rmanager/internal/config"
@@ -14,19 +13,34 @@ func GetStatus(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		info, err := services.GetSystemInfo(cfg)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(info)
+		writeJSON(w, http.StatusOK, info, "success")
 	}
 }
 
 func RestartXochitl(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("Restarting xochitl...")
-		platform.RestartXochitl(cfg)
-		w.Write([]byte("UI restart command sent"))
+		log.Printf("[INFO] Restarting xochitl requested...")
+		err := platform.RestartXochitl(cfg)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, nil, "UI restart command sent")
+	}
+}
+
+func GetMonitorData(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		data, err := services.GetMonitorData(cfg)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		writeJSON(w, http.StatusOK, data, "success")
 	}
 }
