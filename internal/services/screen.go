@@ -12,19 +12,29 @@ import (
 	"time"
 )
 
-func UploadScreen(cfg *config.Config, image io.ReadSeeker) error {
-	if err := platform.Mount(cfg, "rw"); err != nil {
+type ScreenService struct {
+	cfg *config.Config
+}
+
+func NewScreenService(cfg *config.Config) *ScreenService {
+	return &ScreenService{
+		cfg: cfg,
+	}
+}
+
+func (s *ScreenService) UploadScreen(image io.ReadSeeker) error {
+	if err := platform.Mount(s.cfg, "rw"); err != nil {
 		return fmt.Errorf("mount rw failed: %w", err)
 	}
 	defer func() {
-		_ = platform.Mount(cfg, "ro")
+		_ = platform.Mount(s.cfg, "ro")
 	}()
-	if err := os.MkdirAll(cfg.ScreenPath, 0755); err != nil {
+	if err := os.MkdirAll(s.cfg.ScreenPath, 0755); err != nil {
 		return fmt.Errorf("mkdir screen path failed: %w", err)
 	}
 
-	dstPath := filepath.Join(cfg.ScreenPath, "suspended.png")
-	if err := copyToFile(dstPath, image); err != nil {
+	dstPath := filepath.Join(s.cfg.ScreenPath, "suspended.png")
+	if err := s.copyToFile(dstPath, image); err != nil {
 		return fmt.Errorf("write screen file failed: %w", err)
 	}
 
@@ -32,17 +42,17 @@ func UploadScreen(cfg *config.Config, image io.ReadSeeker) error {
 		return fmt.Errorf("reset image stream failed: %w", err)
 	}
 
-	if err := saveToHistoryLibrary(cfg, image); err != nil {
+	if err := s.saveToHistoryLibrary(image); err != nil {
 		return fmt.Errorf("save history failed: %w", err)
 	}
 
 	return nil
 }
 
-func GetHistoryLibrary(cfg *config.Config) ([]models.SuspendHistoryItem, error) {
+func (s *ScreenService) GetHistoryLibrary() ([]models.SuspendHistoryItem, error) {
 	historyItems := make([]models.SuspendHistoryItem, 0)
 
-	files, err := os.ReadDir(cfg.HistoryPath)
+	files, err := os.ReadDir(s.cfg.HistoryPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return historyItems, nil
@@ -66,20 +76,20 @@ func GetHistoryLibrary(cfg *config.Config) ([]models.SuspendHistoryItem, error) 
 	return historyItems, nil
 }
 
-func GetHistoryFilePath(cfg *config.Config, filename string) (string, error) {
+func (s *ScreenService) GetHistoryFilePath(filename string) (string, error) {
 	if filepath.Ext(filename) != ".png" {
 		return "", fmt.Errorf("invalid file type, only .png allowed")
 	}
 
-	path, err := getValidatedPath(cfg.HistoryPath, filename)
+	path, err := getValidatedPath(s.cfg.HistoryPath, filename)
 	if err != nil {
 		return "", fmt.Errorf("history error: %w: %s", err, filename)
 	}
 	return path, nil
 }
 
-func GetCurrentSuspendPath(cfg *config.Config) (string, error) {
-	path, err := getValidatedPath(cfg.ScreenPath, "suspended.png")
+func (s *ScreenService) GetCurrentSuspendPath() (string, error) {
+	path, err := getValidatedPath(s.cfg.ScreenPath, "suspended.png")
 	if err != nil {
 		return "", fmt.Errorf("screen error: %w: suspend.png", err)
 	}
@@ -101,20 +111,20 @@ func getValidatedPath(basePath, filename string) (string, error) {
 	return fullPath, nil
 }
 
-func saveToHistoryLibrary(cfg *config.Config, image io.Reader) error {
+func (s *ScreenService) saveToHistoryLibrary(image io.Reader) error {
 	// uuid + .png
 	// dst, err := os.Create(filepath.Join(cfg.HistoryPath, uuid.New().String()+".png"))
 	// timestamp + .png
-	if err := os.MkdirAll(cfg.HistoryPath, 0755); err != nil {
+	if err := os.MkdirAll(s.cfg.HistoryPath, 0755); err != nil {
 		return err
 	}
 	filename := time.Now().Format("20060102-150405") + ".png"
-	dstPath := filepath.Join(cfg.HistoryPath, filename)
+	dstPath := filepath.Join(s.cfg.HistoryPath, filename)
 
-	return copyToFile(dstPath, image)
+	return s.copyToFile(dstPath, image)
 }
 
-func copyToFile(path string, src io.Reader) error {
+func (s *ScreenService) copyToFile(path string, src io.Reader) error {
 	dst, err := os.Create(path)
 	if err != nil {
 		return err

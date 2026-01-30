@@ -26,7 +26,8 @@ func UploadSuspendScreen(cfg *config.Config) http.HandlerFunc {
 		}
 		defer file.Close()
 
-		err = services.UploadScreen(cfg, file)
+		screenSvc := services.NewScreenService(cfg)
+		err = screenSvc.UploadScreen(file)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "Unable to upload screen: "+err.Error())
 			return
@@ -39,7 +40,8 @@ func UploadSuspendScreen(cfg *config.Config) http.HandlerFunc {
 // GetCurrentSuspend serves the current suspend screen image
 func GetCurrentSuspend(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		imagePath, err := services.GetCurrentSuspendPath(cfg)
+		screenSvc := services.NewScreenService(cfg)
+		imagePath, err := screenSvc.GetCurrentSuspendPath()
 		if err != nil {
 			if errors.Is(err, models.ErrFileNotFound) {
 				writeError(w, http.StatusNotFound, "Suspend screen not found")
@@ -57,7 +59,8 @@ func GetCurrentSuspend(cfg *config.Config) http.HandlerFunc {
 func GetHistoryLibrary(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		historyItems, err := services.GetHistoryLibrary(cfg)
+		screenSvc := services.NewScreenService(cfg)
+		historyItems, err := screenSvc.GetHistoryLibrary()
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "Unable to get history: "+err.Error())
 			return
@@ -75,7 +78,8 @@ func GetHistoryItem(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		filePath, err := services.GetHistoryFilePath(cfg, filename)
+		screenSvc := services.NewScreenService(cfg)
+		filePath, err := screenSvc.GetHistoryFilePath(filename)
 		if err != nil {
 			if errors.Is(err, models.ErrFileNotFound) {
 				writeError(w, http.StatusNotFound, "History item not found")
