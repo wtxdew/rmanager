@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React from 'react';
-import { Battery, HardDrive, Cpu, Wifi, RefreshCw, Upload, Save, Terminal as TerminalIcon, MemoryStick, Tablet } from 'lucide-react';
+import { Battery, HardDrive, Cpu, Wifi, RefreshCw, Upload, Save, Terminal as TerminalIcon, MemoryStick, Tablet, Activity } from 'lucide-react';
 import { useSystemStats, useMonitor } from '../hooks/useSystemStats';
 import { documentAPI } from '../services/api';
 
@@ -74,7 +74,7 @@ export const DashboardHome = () => {
         <Card title="System Status" className='space-y-4'>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Tablet className="w-8 h-8 text-slate-700" />
+              <Activity className="w-8 h-8 text-slate-700" />
               <span className="text-2xl font-bold text-slate-800">Active</span>
               <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
             </div>
@@ -83,24 +83,29 @@ export const DashboardHome = () => {
           <div className="rounded-full">{stats?.uptime}</div>
         </Card>
 
-        <Card title="Internal Storage">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <HardDrive className="w-8 h-8 text-slate-700" />
-              <span className="text-2xl font-bold text-slate-800">
-                {((storageInfo.used / storageInfo.total) * 100).toFixed(0)}%
+        <Card title="Internal Storage" className='flex flex-col'>
+          <div className="flex flex-col h-full justify-center">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <HardDrive className="w-8 h-8 text-slate-700" />
+                <span className="text-2xl font-bold text-slate-800">
+                  {((storageInfo.used / storageInfo.total) * 100).toFixed(0)}%
+                </span>
+              </div>
+              <span className="text-xs text-slate-500">
+                {storageInfo.used.toFixed(1)}GB / {storageInfo.total.toFixed(1)}GB
               </span>
             </div>
-            <span className="text-xs text-slate-500">
-              {storageInfo.used.toFixed(1)}GB / {storageInfo.total.toFixed(1)}GB
-            </span>
-          </div>
-          <div className="mt-3">
-            <ProgressBar value={storageInfo.used} max={storageInfo.total} />
+            <div className="mt-3">
+              <ProgressBar value={storageInfo.used} max={storageInfo.total} />
+            </div>
           </div>
         </Card>
 
-        <Card title="Connection">
+        {/* <div className="mt-3"> */}
+        {/* <ProgressBar value={storageInfo.used} max={storageInfo.total} /> */}
+        {/* </div> */}
+        <Card title="Connection" className='flex flex-col'>
           <div className="flex items-center justify-between h-full pb-2">
             <div className="flex items-center gap-3">
               <Wifi className="w-8 h-8 text-emerald-600" />
@@ -113,10 +118,12 @@ export const DashboardHome = () => {
           </div>
         </Card>
 
-        <Card title="Device Model">
-          <div className="flex items-center gap-3">
-            <Battery className="w-8 h-8 text-slate-700" />
-            <span className="text-sm font-medium text-slate-800">{stats?.model || 'Loading...'}</span>
+        <Card title="Device Model" className='flex flex-col'>
+          <div className='flex items-center justify-between h-full pb-2'>
+            <div className="flex items-center gap-3">
+              <Tablet className="w-8 h-8 text-slate-700" />
+              <span className="text-sm font-medium text-slate-800">{stats?.model || 'Loading...'}</span>
+            </div>
           </div>
         </Card>
       </div>
