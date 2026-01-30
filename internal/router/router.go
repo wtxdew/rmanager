@@ -6,6 +6,7 @@ import (
 	"rmanager/internal/config"
 	"rmanager/internal/handlers"
 	"rmanager/internal/middleware"
+	"rmanager/internal/services"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -19,6 +20,8 @@ func Setup(cfg *config.Config) http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.CORS().Handler)
 
+	screenSvc := services.NewScreenService(cfg)
+
 	// API routes (must be before static files)
 	r.Route("/api", func(r chi.Router) {
 		// System endpoints
@@ -26,10 +29,10 @@ func Setup(cfg *config.Config) http.Handler {
 		r.Get("/monitor", handlers.GetMonitorData(cfg))
 
 		// Suspend screen endpoints
-		r.Post("/upload-suspend", handlers.UploadSuspendScreen(cfg))
-		r.Get("/current-suspend", handlers.GetCurrentSuspend(cfg))
-		r.Get("/history-suspend", handlers.GetHistoryLibrary(cfg))
-		r.Get("/history-suspend/{filename}", handlers.GetHistoryItem(cfg))
+		r.Post("/upload-suspend", handlers.UploadSuspendScreen(screenSvc))
+		r.Get("/current-suspend", handlers.GetCurrentSuspend(screenSvc))
+		r.Get("/history-suspend", handlers.GetHistoryLibrary(screenSvc))
+		r.Get("/history-suspend/{filename}", handlers.GetHistoryItem(screenSvc))
 
 		// Document endpoints
 		r.Post("/upload-doc", handlers.UploadDocument(cfg))

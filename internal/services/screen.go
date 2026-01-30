@@ -26,15 +26,14 @@ func (s *ScreenService) UploadScreen(image io.ReadSeeker) error {
 	if err := platform.Mount(s.cfg, "rw"); err != nil {
 		return fmt.Errorf("mount rw failed: %w", err)
 	}
-	defer func() {
-		_ = platform.Mount(s.cfg, "ro")
-	}()
+	defer platform.Mount(s.cfg, "ro")
+
 	if err := os.MkdirAll(s.cfg.ScreenPath, 0755); err != nil {
 		return fmt.Errorf("mkdir screen path failed: %w", err)
 	}
 
 	dstPath := filepath.Join(s.cfg.ScreenPath, "suspended.png")
-	if err := s.copyToFile(dstPath, image); err != nil {
+	if err := platform.SafeWriteFile(dstPath, image); err != nil {
 		return fmt.Errorf("write screen file failed: %w", err)
 	}
 
@@ -52,7 +51,7 @@ func (s *ScreenService) UploadScreen(image io.ReadSeeker) error {
 func (s *ScreenService) GetHistoryLibrary() ([]models.SuspendHistoryItem, error) {
 	historyItems := make([]models.SuspendHistoryItem, 0)
 
-	files, err := os.ReadDir(s.cfg.HistoryPath)
+	files, err := platform.ListPngFiles(s.cfg.HistoryPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return historyItems, nil
@@ -61,9 +60,6 @@ func (s *ScreenService) GetHistoryLibrary() ([]models.SuspendHistoryItem, error)
 	}
 
 	for _, file := range files {
-		if file.IsDir() || filepath.Ext(file.Name()) != ".png" {
-			continue
-		}
 		historyItems = append(historyItems, models.SuspendHistoryItem{
 			Filename: file.Name(),
 			Url:      "/api/history-suspend/" + file.Name(),
@@ -121,18 +117,5 @@ func (s *ScreenService) saveToHistoryLibrary(image io.Reader) error {
 	filename := time.Now().Format("20060102-150405") + ".png"
 	dstPath := filepath.Join(s.cfg.HistoryPath, filename)
 
-	return s.copyToFile(dstPath, image)
-}
-
-func (s *ScreenService) copyToFile(path string, src io.Reader) error {
-	dst, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer dst.Close()
-
-	if _, err := io.Copy(dst, src); err != nil {
-		return err
-	}
-	return dst.Sync()
+	return platform.SafeWriteFile(dstPath, image)
 }

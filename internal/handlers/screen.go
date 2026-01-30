@@ -3,7 +3,6 @@ package handlers
 import (
 	"errors"
 	"net/http"
-	"rmanager/internal/config"
 	"rmanager/internal/models"
 	"rmanager/internal/services"
 
@@ -11,7 +10,7 @@ import (
 )
 
 // UploadSuspendScreen handles suspend screen image uploads
-func UploadSuspendScreen(cfg *config.Config) http.HandlerFunc {
+func UploadSuspendScreen(screenSvc *services.ScreenService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			writeError(w, http.StatusMethodNotAllowed, "POST Support ONLY")
@@ -26,7 +25,6 @@ func UploadSuspendScreen(cfg *config.Config) http.HandlerFunc {
 		}
 		defer file.Close()
 
-		screenSvc := services.NewScreenService(cfg)
 		err = screenSvc.UploadScreen(file)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "Unable to upload screen: "+err.Error())
@@ -38,9 +36,8 @@ func UploadSuspendScreen(cfg *config.Config) http.HandlerFunc {
 }
 
 // GetCurrentSuspend serves the current suspend screen image
-func GetCurrentSuspend(cfg *config.Config) http.HandlerFunc {
+func GetCurrentSuspend(screenSvc *services.ScreenService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		screenSvc := services.NewScreenService(cfg)
 		imagePath, err := screenSvc.GetCurrentSuspendPath()
 		if err != nil {
 			if errors.Is(err, models.ErrFileNotFound) {
@@ -56,10 +53,8 @@ func GetCurrentSuspend(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
-func GetHistoryLibrary(cfg *config.Config) http.HandlerFunc {
+func GetHistoryLibrary(screenSvc *services.ScreenService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		screenSvc := services.NewScreenService(cfg)
 		historyItems, err := screenSvc.GetHistoryLibrary()
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "Unable to get history: "+err.Error())
@@ -70,7 +65,7 @@ func GetHistoryLibrary(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
-func GetHistoryItem(cfg *config.Config) http.HandlerFunc {
+func GetHistoryItem(screenSvc *services.ScreenService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		filename := chi.URLParam(r, "filename")
 		if filename == "" {
@@ -78,7 +73,6 @@ func GetHistoryItem(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		screenSvc := services.NewScreenService(cfg)
 		filePath, err := screenSvc.GetHistoryFilePath(filename)
 		if err != nil {
 			if errors.Is(err, models.ErrFileNotFound) {
