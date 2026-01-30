@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"rmanager/internal/platform"
+	"time"
 )
 
 func FindHardLinkPath(booksDir string, sourcePath string) (string, error) {
@@ -28,4 +29,8 @@ func FindHardLinkPath(booksDir string, sourcePath string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("hard link not found")
+}
+
+func CreateTombstone(basePath, id string) error {
+	return os.WriteFile(filepath.Join(basePath, id+".tombstone"), []byte(time.Now().Format("Mon Jan 2 15:04:05 2006")), 0644)
 }

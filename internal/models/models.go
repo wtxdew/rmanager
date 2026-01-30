@@ -14,7 +14,6 @@ type SystemInfo struct {
 
 // RmMetadata represents reMarkable document metadata
 type RmMetadata struct {
-	Deleted          bool   `json:"deleted"`
 	LastModified     string `json:"lastModified"`
 	MetadataModified bool   `json:"metadatamodified"`
 	Modified         bool   `json:"modified"`
@@ -35,17 +34,6 @@ type RmContent struct {
 	TextScale     int                    `json:"textScale,omitempty"`
 }
 
-// DocumentFile represents a file in the file manager
-type DocumentFile struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	Type         string `json:"type"`
-	Size         int64  `json:"size"`
-	ModifiedTime string `json:"modifiedTime"`
-	Pinned       bool   `json:"pinned"`
-	Parent       string `json:"parent"`
-}
-
 // DocumentInfo represents detailed document information
 type DocumentInfo struct {
 	ID           string `json:"id"`
@@ -57,7 +45,6 @@ type DocumentInfo struct {
 	Pinned       bool   `json:"pinned"`
 	Parent       string `json:"parent"`
 	PageCount    int    `json:"pageCount"`
-	Deleted      bool   `json:"deleted"`
 }
 
 // APIResponse represents a standard API response
