@@ -12,17 +12,6 @@ import (
 	"time"
 )
 
-func SaveToHistoryLibrary(cfg *config.Config, image io.Reader) {
-	// uuid + .png
-	// dst, err := os.Create(filepath.Join(cfg.HistoryPath, uuid.New().String()+".png"))
-	// timestamp + .png
-	filename := time.Now().Format("20060102-150405") + ".png"
-	dst, _ := os.Create(filepath.Join(cfg.HistoryPath, filename))
-	defer dst.Close()
-
-	io.Copy(dst, image)
-}
-
 func UploadScreen(cfg *config.Config, image io.Reader) error {
 	platform.Mount(cfg, "rw")
 	os.MkdirAll(cfg.ScreenPath, 0755)
@@ -41,7 +30,7 @@ func UploadScreen(cfg *config.Config, image io.Reader) error {
 	}
 
 	image.(io.Seeker).Seek(0, 0)
-	SaveToHistoryLibrary(cfg, image)
+	saveToHistoryLibrary(cfg, image)
 	platform.Mount(cfg, "ro")
 
 	return nil
@@ -109,4 +98,15 @@ func getValidatedPath(basePath, filename string) (string, error) {
 	}
 
 	return fullPath, nil
+}
+
+func saveToHistoryLibrary(cfg *config.Config, image io.Reader) {
+	// uuid + .png
+	// dst, err := os.Create(filepath.Join(cfg.HistoryPath, uuid.New().String()+".png"))
+	// timestamp + .png
+	filename := time.Now().Format("20060102-150405") + ".png"
+	dst, _ := os.Create(filepath.Join(cfg.HistoryPath, filename))
+	defer dst.Close()
+
+	io.Copy(dst, image)
 }
