@@ -7,7 +7,7 @@ type SystemInfo struct {
 	DiskTotalBytes uint64 `json:"diskTotalBytes"`
 	Model          string `json:"model"`
 	CPU            string `json:"cpu,omitempty"`
-	Memory         string `json:"memory,omitempty"`
+	Memory         int64  `json:"memory,omitempty"`
 	ScreenWidth    int    `json:"screenWidth"`
 	ScreenHeight   int    `json:"screenHeight"`
 }

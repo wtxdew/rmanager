@@ -89,6 +89,41 @@ func GetDiskUsage(cfg *config.Config, path string) (uint64, uint64, error) {
 	return used, total, nil
 }
 
+func GetCPUModel(cfg *config.Config) string {
+	file, err := os.Open("/proc/cpuinfo")
+	if err != nil {
+		return "Unknown CPU"
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	var modelName, hardware string
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "model name") {
+			parts := strings.Split(line, ":")
+			if len(parts) > 1 {
+				modelName = strings.TrimSpace(parts[1])
+			}
+		}
+		if strings.HasPrefix(line, "Hardware") {
+			parts := strings.Split(line, ":")
+			if len(parts) > 1 {
+				hardware = strings.TrimSpace(parts[1])
+			}
+		}
+	}
+
+	if hardware != "" {
+		return hardware
+	}
+	if modelName != "" {
+		return modelName
+	}
+	return "Unknown CPU"
+}
+
 // GetCPULoad Read /proc/stat to calculate CPU usage
 func GetCPULoad(cfg *config.Config) float64 {
 	if cfg.IsDevMode() {

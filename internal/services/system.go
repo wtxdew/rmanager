@@ -18,6 +18,8 @@ func GetSystemInfo(cfg *config.Config) (*models.SystemInfo, error) {
 	}
 
 	usedBytes, totalBytes, err := platform.GetDiskUsage(cfg, "/home")
+	cpuModel := platform.GetCPUModel(cfg)
+	_, memTotal, _ := platform.GetMemoryStats(cfg)
 	if err != nil {
 		log.Printf("Warning: failed to get disk usage: %v", err)
 		usedBytes = 0
@@ -28,6 +30,8 @@ func GetSystemInfo(cfg *config.Config) (*models.SystemInfo, error) {
 		Uptime:         uptime,
 		DiskUsedBytes:  usedBytes,
 		DiskTotalBytes: totalBytes,
+		CPU:            cpuModel,
+		Memory:         memTotal,
 		Model:          cfg.GetDeviceDisplayName(),
 		ScreenWidth:    cfg.DeviceSpec.ScreenWidth,
 		ScreenHeight:   cfg.DeviceSpec.ScreenHeight,
