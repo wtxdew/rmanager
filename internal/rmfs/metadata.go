@@ -8,7 +8,6 @@ import (
 	"rmanager/internal/models"
 )
 
-// GetMetadata 读取并解析 .metadata 文件
 func GetMetadata(basePath, id string) (*models.RmMetadata, error) {
 	path := filepath.Join(basePath, id+".metadata")
 
@@ -25,7 +24,6 @@ func GetMetadata(basePath, id string) (*models.RmMetadata, error) {
 	return &meta, nil
 }
 
-// SaveMetadata 保存 .metadata 文件 (覆盖或新建)
 func SaveMetadata(basePath, id string, meta *models.RmMetadata) error {
 	path := filepath.Join(basePath, id+".metadata")
 

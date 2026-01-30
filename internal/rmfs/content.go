@@ -8,6 +8,21 @@ import (
 	"rmanager/internal/models"
 )
 
+func GetContent(basePath, id string) (*models.RmContent, error) {
+	contentPath := filepath.Join(basePath, id+".content")
+	contentJson, err := os.ReadFile(contentPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read content: %w", err)
+	}
+
+	var content models.RmContent
+	if err := json.Unmarshal(contentJson, &content); err != nil {
+		return nil, fmt.Errorf("failed to parse content: %w", err)
+	}
+
+	return &content, nil
+}
+
 func CreateContent(basePath, id, fileType string) error {
 	content := &models.RmContent{}
 
@@ -35,15 +50,9 @@ func CreateContent(basePath, id, fileType string) error {
 }
 
 func GetOrigExtension(basePath, id string) (string, error) {
-	contentPath := filepath.Join(basePath, id+".content")
-	contentJson, err := os.ReadFile(contentPath)
+	content, err := GetContent(basePath, id)
 	if err != nil {
-		return "", fmt.Errorf("failed to read content: %w", err)
-	}
-
-	var content models.RmContent
-	if err := json.Unmarshal(contentJson, &content); err != nil {
-		return "", fmt.Errorf("failed to parse content: %w", err)
+		return "", fmt.Errorf("failed to get content: %w", err)
 	}
 
 	switch content.FileType {

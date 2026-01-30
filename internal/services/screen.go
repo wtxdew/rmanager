@@ -51,7 +51,7 @@ func (s *ScreenService) UploadScreen(image io.ReadSeeker) error {
 func (s *ScreenService) GetHistoryLibrary() ([]models.SuspendHistoryItem, error) {
 	historyItems := make([]models.SuspendHistoryItem, 0)
 
-	files, err := platform.ListPngFiles(s.cfg.HistoryPath)
+	files, err := platform.ListExtFiles(s.cfg.HistoryPath, ".png")
 	if err != nil {
 		if os.IsNotExist(err) {
 			return historyItems, nil
