@@ -33,3 +33,33 @@ func CreateContent(basePath, id, fileType string) error {
 	path := filepath.Join(basePath, id+".content")
 	return os.WriteFile(path, []byte(contentJson), 0644)
 }
+
+func GetOrigExtension(basePath, id string) (string, error) {
+	contentPath := filepath.Join(basePath, id+".content")
+	contentJson, err := os.ReadFile(contentPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read content: %w", err)
+	}
+
+	var content models.RmContent
+	if err := json.Unmarshal(contentJson, &content); err != nil {
+		return "", fmt.Errorf("failed to parse content: %w", err)
+	}
+
+	switch content.FileType {
+	case "pdf":
+		return ".pdf", nil
+	case "epub":
+		return ".epub", nil
+	}
+
+	// Fallback
+	if _, err := os.Stat(filepath.Join(basePath, id+".epub")); err == nil {
+		return ".epub", nil
+	}
+	if _, err := os.Stat(filepath.Join(basePath, id+".pdf")); err == nil {
+		return ".pdf", nil
+	}
+
+	return "", fmt.Errorf("unknown file type")
+}

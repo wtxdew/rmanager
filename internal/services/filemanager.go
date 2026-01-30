@@ -22,19 +22,21 @@ import (
 
 // ListDocuments returns all non-deleted documents from xochitl directory
 func ListDocuments(cfg *config.Config) ([]models.DocumentFile, error) {
+	var docs []models.DocumentFile
+
 	files, err := os.ReadDir(cfg.XochitlPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return docs, nil
+		}
 		return nil, fmt.Errorf("failed to read xochitl directory: %w", err)
 	}
 
-	var docs []models.DocumentFile
 	processed := make(map[string]bool)
-
 	for _, f := range files {
 		name := f.Name()
 		ext := filepath.Ext(name)
 
-		// Only process .metadata files
 		if ext != ".metadata" {
 			continue
 		}
@@ -45,7 +47,6 @@ func ListDocuments(cfg *config.Config) ([]models.DocumentFile, error) {
 		}
 		processed[id] = true
 
-		// Read metadata
 		metaPath := filepath.Join(cfg.XochitlPath, name)
 		data, err := os.ReadFile(metaPath)
 		if err != nil {
@@ -57,29 +58,18 @@ func ListDocuments(cfg *config.Config) ([]models.DocumentFile, error) {
 			continue
 		}
 
-		// Skip deleted documents
-		if meta.Deleted {
-			continue
-		}
-
 		// Find corresponding document file
-		var fileType string
-		var fileSize int64
-		var modTime time.Time
-
-		for _, testExt := range []string{".pdf", ".epub"} {
-			testPath := filepath.Join(cfg.XochitlPath, id+testExt)
-			if info, err := os.Stat(testPath); err == nil {
-				fileType = testExt[1:]
-				fileSize = info.Size()
-				modTime = info.ModTime()
-				break
-			}
+		fileType, err := rmfs.GetOrigExtension(cfg.XochitlPath, id)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get extension: %w", err)
 		}
-
-		// Skip if no document file found
-		if fileType == "" {
-			continue
+		fileSize, err := platform.GetFileSize(filepath.Join(cfg.XochitlPath, id+fileType))
+		if err != nil {
+			return nil, fmt.Errorf("failed to get file size: %w", err)
+		}
+		modTime, err := platform.GetFileModTime(filepath.Join(cfg.XochitlPath, id+fileType))
+		if err != nil {
+			return nil, fmt.Errorf("failed to get file mod time: %w", err)
 		}
 
 		// Parse timestamp from metadata
@@ -99,7 +89,6 @@ func ListDocuments(cfg *config.Config) ([]models.DocumentFile, error) {
 		})
 	}
 
-	// Sort by modified time (newest first)
 	sort.Slice(docs, func(i, j int) bool {
 		return docs[i].ModifiedTime > docs[j].ModifiedTime
 	})
@@ -122,7 +111,7 @@ func MoveDocumentToTrash(cfg *config.Config, id string) error {
 
 // PermanentlyDeleteDocument directly delete document and create tombstone
 func DeleteDocument(cfg *config.Config, id string) error {
-	ext, err := GetOrigExtension(cfg.XochitlPath, id)
+	ext, err := rmfs.GetOrigExtension(cfg.XochitlPath, id)
 	if err != nil {
 		return fmt.Errorf("failed to get extension: %w", err)
 	}
@@ -154,7 +143,7 @@ func RenameDocument(cfg *config.Config, id, newName string) error {
 		return fmt.Errorf("new name cannot be empty")
 	}
 
-	origExt, err := GetOrigExtension(cfg.XochitlPath, id)
+	origExt, err := rmfs.GetOrigExtension(cfg.XochitlPath, id)
 	if err != nil {
 		return fmt.Errorf("failed to get extension: %w", err)
 	}
@@ -326,145 +315,4 @@ func UploadDocument(cfg *config.Config, file multipart.File, header *multipart.F
 	}
 
 	return id, nil
-}
-
-func GetOrigExtension(xochitlPath, id string) (string, error) {
-	contentPath := filepath.Join(xochitlPath, id+".content")
-	contentJson, err := os.ReadFile(contentPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read content: %w", err)
-	}
-
-	var content models.RmContent
-	if err := json.Unmarshal(contentJson, &content); err != nil {
-		return "", fmt.Errorf("failed to parse content: %w", err)
-	}
-
-	switch content.FileType {
-	case "pdf":
-		return ".pdf", nil
-	case "epub":
-		return ".epub", nil
-	}
-
-	// Fallback
-	if _, err := os.Stat(filepath.Join(xochitlPath, id+".epub")); err == nil {
-		return ".epub", nil
-	}
-	if _, err := os.Stat(filepath.Join(xochitlPath, id+".pdf")); err == nil {
-		return ".pdf", nil
-	}
-
-	return "", nil
-}
-
-func SyncLibrary(cfg *config.Config) error {
-	fmt.Println("Starting library synchronization...")
-
-	// Map Key: "MyBook.pdf"
-	// Map Value: "/.../xochitl/uuid.pdf"
-	expectedLinks := make(map[string]string)
-
-	files, err := os.ReadDir(cfg.XochitlPath)
-	if err != nil {
-		return fmt.Errorf("failed to read xochitl dir: %w", err)
-	}
-
-	for _, f := range files {
-		if filepath.Ext(f.Name()) == ".metadata" {
-			id := strings.TrimSuffix(f.Name(), ".metadata")
-
-			meta, err := rmfs.GetMetadata(cfg.XochitlPath, id)
-			if err != nil {
-				continue
-			}
-
-			ext, err := GetOrigExtension(cfg.XochitlPath, id)
-			if err != nil {
-				continue
-			}
-
-			linkName := meta.VisibleName + ext
-			sourcePath := filepath.Join(cfg.XochitlPath, id+ext)
-
-			expectedLinks[linkName] = sourcePath
-		}
-	}
-
-	for linkName, sourcePath := range expectedLinks {
-		linkPath := filepath.Join(cfg.BooksPath, linkName)
-
-		fileInfo, err := os.Lstat(linkPath)
-
-		if os.IsNotExist(err) {
-			if err := os.Link(sourcePath, linkPath); err != nil {
-				fmt.Printf("Failed to create link for %s: %v\n", linkName, err)
-			}
-		} else {
-			// Exist but Symbolic: Migrate to Hardlink
-			if fileInfo.Mode()&os.ModeSymlink != 0 {
-				os.Remove(linkPath)
-				os.Link(sourcePath, linkPath)
-				fmt.Printf("Migrated symlink to hardlink: %s\n", linkName)
-				continue
-			}
-
-			srcInode, _ := platform.GetInode(sourcePath)
-			dstInode, _ := platform.GetInode(linkPath)
-
-			// Exist but Inode not match: Fix broken link
-			if srcInode != 0 && srcInode != dstInode {
-				os.Remove(linkPath)
-				os.Link(sourcePath, linkPath)
-				fmt.Printf("Fixed broken link: %s\n", linkName)
-			}
-		}
-	}
-
-	CleanOrphans(cfg, expectedLinks)
-
-	fmt.Println("Library synchronization finished.")
-	return nil
-}
-
-func CleanOrphans(cfg *config.Config, expectedLinks map[string]string) {
-	fmt.Println("Cleaning orphan files...")
-
-	validInodes := make(map[uint64]bool)
-	for _, sourcePath := range expectedLinks {
-		if ino, err := platform.GetInode(sourcePath); err == nil {
-			validInodes[ino] = true
-		}
-	}
-
-	entries, err := os.ReadDir(cfg.BooksPath)
-	if err != nil {
-		fmt.Printf("[ERROR] reading books dir: %v\n", err)
-		return
-	}
-
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-
-		filename := entry.Name()
-		fullPath := filepath.Join(cfg.BooksPath, filename)
-
-		if _, isExpected := expectedLinks[filename]; isExpected {
-			continue
-		}
-
-		ino, err := platform.GetInode(fullPath)
-		if err != nil {
-			continue
-		}
-
-		if validInodes[ino] {
-			fmt.Printf("Removing ghost hardlink (renamed artifact): %s\n", filename)
-			os.Remove(fullPath)
-		} else {
-			// Individual Inode
-		}
-	}
 }

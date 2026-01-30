@@ -214,3 +214,19 @@ func GetInode(path string) (uint64, error) {
 	}
 	return stat.Ino, nil
 }
+
+func GetFileSize(path string) (int64, error) {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return 0, err
+	}
+	return fileInfo.Size(), nil
+}
+
+func GetFileModTime(path string) (time.Time, error) {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return fileInfo.ModTime(), nil
+}
