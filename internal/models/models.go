@@ -2,13 +2,14 @@ package models
 
 // SystemInfo represents system status information
 type SystemInfo struct {
-	Uptime       string `json:"uptime"`
-	Storage      string `json:"storage"`
-	Model        string `json:"model"`
-	CPU          string `json:"cpu,omitempty"`
-	Memory       string `json:"memory,omitempty"`
-	ScreenWidth  int    `json:"screenWidth"`
-	ScreenHeight int    `json:"screenHeight"`
+	Uptime         string `json:"uptime"`
+	DiskUsedBytes  uint64 `json:"diskUsedBytes"`
+	DiskTotalBytes uint64 `json:"diskTotalBytes"`
+	Model          string `json:"model"`
+	CPU            string `json:"cpu,omitempty"`
+	Memory         string `json:"memory,omitempty"`
+	ScreenWidth    int    `json:"screenWidth"`
+	ScreenHeight   int    `json:"screenHeight"`
 }
 
 // RmMetadata represents reMarkable document metadata

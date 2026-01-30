@@ -50,8 +50,20 @@ func GetUptime(cfg *config.Config) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	raw := string(out)
 
-	return string(out), nil
+	if strings.Contains(raw, "up") {
+		parts := strings.Split(raw, "up")
+		if len(parts) > 1 {
+			content := parts[1]
+			if idx := strings.Index(content, "load"); idx != -1 {
+				content = content[:idx]
+			}
+			return "up " + strings.Trim(content, ", \n"), nil
+		}
+	}
+
+	return strings.TrimSpace(raw), nil
 }
 
 // ==========================================
