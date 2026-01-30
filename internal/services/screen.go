@@ -8,35 +8,40 @@ import (
 	"rmanager/internal/config"
 	"rmanager/internal/models"
 	"rmanager/internal/platform"
+	"sort"
 	"time"
 )
 
-func UploadScreen(cfg *config.Config, image io.Reader) error {
-	platform.Mount(cfg, "rw")
-	os.MkdirAll(cfg.ScreenPath, 0755)
-
-	dst, err := os.Create(filepath.Join(cfg.ScreenPath, "suspended.png"))
-	if err != nil {
-		platform.Mount(cfg, "ro")
-		return fmt.Errorf("failed to create screen file: %w", err)
+func UploadScreen(cfg *config.Config, image io.ReadSeeker) error {
+	if err := platform.Mount(cfg, "rw"); err != nil {
+		return fmt.Errorf("mount rw failed: %w", err)
+	}
+	defer func() {
+		_ = platform.Mount(cfg, "ro")
+	}()
+	if err := os.MkdirAll(cfg.ScreenPath, 0755); err != nil {
+		return fmt.Errorf("mkdir screen path failed: %w", err)
 	}
 
-	_, err = io.Copy(dst, image)
-	dst.Close()
-	if err != nil {
-		platform.Mount(cfg, "ro")
-		return fmt.Errorf("failed to copy screen file: %w", err)
+	dstPath := filepath.Join(cfg.ScreenPath, "suspended.png")
+	if err := copyToFile(dstPath, image); err != nil {
+		return fmt.Errorf("write screen file failed: %w", err)
 	}
 
-	image.(io.Seeker).Seek(0, 0)
-	saveToHistoryLibrary(cfg, image)
-	platform.Mount(cfg, "ro")
+	if _, err := image.Seek(0, 0); err != nil {
+		return fmt.Errorf("reset image stream failed: %w", err)
+	}
+
+	if err := saveToHistoryLibrary(cfg, image); err != nil {
+		return fmt.Errorf("save history failed: %w", err)
+	}
 
 	return nil
 }
 
 func GetHistoryLibrary(cfg *config.Config) ([]models.SuspendHistoryItem, error) {
 	historyItems := make([]models.SuspendHistoryItem, 0)
+
 	files, err := os.ReadDir(cfg.HistoryPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -55,10 +60,9 @@ func GetHistoryLibrary(cfg *config.Config) ([]models.SuspendHistoryItem, error) 
 		})
 	}
 
-	for i := len(historyItems)/2 - 1; i >= 0; i-- {
-		opp := len(historyItems) - 1 - i
-		historyItems[i], historyItems[opp] = historyItems[opp], historyItems[i]
-	}
+	sort.Slice(historyItems, func(i, j int) bool {
+		return historyItems[i].Filename > historyItems[j].Filename
+	})
 	return historyItems, nil
 }
 
@@ -97,13 +101,28 @@ func getValidatedPath(basePath, filename string) (string, error) {
 	return fullPath, nil
 }
 
-func saveToHistoryLibrary(cfg *config.Config, image io.Reader) {
+func saveToHistoryLibrary(cfg *config.Config, image io.Reader) error {
 	// uuid + .png
 	// dst, err := os.Create(filepath.Join(cfg.HistoryPath, uuid.New().String()+".png"))
 	// timestamp + .png
+	if err := os.MkdirAll(cfg.HistoryPath, 0755); err != nil {
+		return err
+	}
 	filename := time.Now().Format("20060102-150405") + ".png"
-	dst, _ := os.Create(filepath.Join(cfg.HistoryPath, filename))
+	dstPath := filepath.Join(cfg.HistoryPath, filename)
+
+	return copyToFile(dstPath, image)
+}
+
+func copyToFile(path string, src io.Reader) error {
+	dst, err := os.Create(path)
+	if err != nil {
+		return err
+	}
 	defer dst.Close()
 
-	io.Copy(dst, image)
+	if _, err := io.Copy(dst, src); err != nil {
+		return err
+	}
+	return dst.Sync()
 }
