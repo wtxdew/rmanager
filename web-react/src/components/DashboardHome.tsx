@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React from 'react';
-import { Battery, HardDrive, Cpu, Wifi, RefreshCw, Upload, Save, Terminal as TerminalIcon } from 'lucide-react';
-import { useSystemStats } from '../hooks/useSystemStats';
+import { Battery, HardDrive, Cpu, Wifi, RefreshCw, Upload, Save, Terminal as TerminalIcon, MemoryStick, Tablet } from 'lucide-react';
+import { useSystemStats, useMonitor } from '../hooks/useSystemStats';
 import { documentAPI } from '../services/api';
 
 const ProgressBar = ({ value, max, colorClass = "bg-slate-800" }: { value: number, max: number, colorClass?: string }) => {
@@ -19,8 +19,8 @@ const ProgressBar = ({ value, max, colorClass = "bg-slate-800" }: { value: numbe
 const Card = ({ title, children, className = "", action }: { title: string, children: React.ReactNode, className?: string, action?: React.ReactNode }) => (
   <div className={`bg-white border border-slate-200 rounded-lg p-5 shadow-sm ${className}`}>
     <div className="flex justify-between items-center mb-3">
-        <h3 className="text-slate-500 text-xs font-semibold uppercase tracking-wider">{title}</h3>
-        {action && <div>{action}</div>}
+      <h3 className="text-slate-500 text-xs font-semibold uppercase tracking-wider">{title}</h3>
+      {action && <div>{action}</div>}
     </div>
     {children}
   </div>
@@ -28,6 +28,7 @@ const Card = ({ title, children, className = "", action }: { title: string, chil
 
 export const DashboardHome = () => {
   const { stats, loading, error } = useSystemStats();
+  const monitor = useMonitor();
 
   const handleRestartXochitl = async () => {
     if (confirm('Are you sure you want to restart Xochitl?')) {
@@ -57,27 +58,29 @@ export const DashboardHome = () => {
   }
 
   // Parse storage info
-  const parseStorage = (storage: string) => {
-    const match = storage.match(/Usage ([\d.]+) GB \/ Total ([\d.]+) GB/);
-    if (match) {
-      return { used: parseFloat(match[1]), total: parseFloat(match[2]) };
-    }
-    return { used: 0, total: 8 };
+  const parseStorage = (used: number, total: number) => {
+    const GB = 1024 * 1024 * 1024;
+    return {
+      used: used / GB,
+      total: total / GB,
+    };
   };
 
-  const storageInfo = stats ? parseStorage(stats.storage) : { used: 0, total: 8 };
+  const storageInfo = stats ? parseStorage(stats.diskUsedBytes, stats.diskTotalBytes) : { used: 0, total: 8 };
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card title="System Status">
+        <Card title="System Status" className='space-y-4'>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Cpu className="w-8 h-8 text-slate-700" />
+              <Tablet className="w-8 h-8 text-slate-700" />
               <span className="text-2xl font-bold text-slate-800">Active</span>
+              <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
             </div>
             <span className="text-xs text-slate-500">Running</span>
           </div>
+          <div className="rounded-full">{stats?.uptime}</div>
         </Card>
 
         <Card title="Internal Storage">
@@ -93,12 +96,12 @@ export const DashboardHome = () => {
             </span>
           </div>
           <div className="mt-3">
-             <ProgressBar value={storageInfo.used} max={storageInfo.total} />
+            <ProgressBar value={storageInfo.used} max={storageInfo.total} />
           </div>
         </Card>
 
         <Card title="Connection">
-           <div className="flex items-center justify-between h-full pb-2">
+          <div className="flex items-center justify-between h-full pb-2">
             <div className="flex items-center gap-3">
               <Wifi className="w-8 h-8 text-emerald-600" />
               <div>
@@ -119,19 +122,11 @@ export const DashboardHome = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card title="Device Information" className="lg:col-span-1">
+        {/* <Card title="Device Information" className="lg:col-span-1">
           <div className="space-y-4">
-            <div className="flex justify-between border-b border-slate-100 pb-2">
-              <span className="text-sm text-slate-500">Model</span>
-              <span className="text-sm font-medium text-slate-800">{stats?.model || 'N/A'}</span>
-            </div>
             <div className="flex justify-between border-b border-slate-100 pb-2">
               <span className="text-sm text-slate-500">Uptime</span>
               <span className="text-sm font-medium text-slate-800">{stats?.uptime || 'N/A'}</span>
-            </div>
-            <div className="flex justify-between border-b border-slate-100 pb-2">
-              <span className="text-sm text-slate-500">Storage</span>
-              <span className="text-sm font-medium text-slate-800">{stats?.storage || 'N/A'}</span>
             </div>
             {stats?.cpu && (
               <div className="flex justify-between pt-1">
@@ -140,32 +135,66 @@ export const DashboardHome = () => {
               </div>
             )}
           </div>
+        </Card> */}
+
+
+        <Card title="Monitor" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Cpu className="w-8 h-8 text-slate-700" />
+              <span className="text-2xl font-bold text-slate-800">
+                {((monitor?.cpu || 0)).toFixed(0)}%
+              </span>
+              <span className="text-xs text-slate-500"> {stats?.cpu} </span>
+            </div>
+            <span className="text-xs text-slate-500"> {monitor?.cpu}% </span>
+          </div>
+          <div className="mt-3">
+            <ProgressBar value={monitor?.cpu || 0} max={100} />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <MemoryStick className="w-8 h-8 text-slate-700" />
+              <span className="text-2xl font-bold text-slate-800">
+                {((monitor?.memory || 0)).toFixed(0)}%
+              </span>
+            </div>
+            <span className="text-xs text-slate-500">
+              {monitor?.memUsed} / {monitor?.memTotal} MiB
+            </span>
+          </div>
+          <div className="mt-3">
+            <ProgressBar value={monitor?.memory || 0} max={100} />
+          </div>
+
         </Card>
 
-        <Card title="Quick Actions" className="lg:col-span-2">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <button
-                  onClick={handleRestartXochitl}
-                  className="flex flex-col items-center justify-center p-4 border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all group"
-                >
-                    <RefreshCw className="w-6 h-6 text-slate-600 mb-2 group-hover:text-slate-900" />
-                    <span className="text-sm font-medium text-slate-700">Restart Xochitl</span>
-                </button>
-                <button className="flex flex-col items-center justify-center p-4 border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all group">
-                    <Upload className="w-6 h-6 text-slate-600 mb-2 group-hover:text-slate-900" />
-                    <span className="text-sm font-medium text-slate-700">Quick Upload</span>
-                </button>
-                <button className="flex flex-col items-center justify-center p-4 border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all group">
-                    <Save className="w-6 h-6 text-slate-600 mb-2 group-hover:text-slate-900" />
-                    <span className="text-sm font-medium text-slate-700">Backup Metadata</span>
-                </button>
-                 <button className="flex flex-col items-center justify-center p-4 border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all group">
-                    <TerminalIcon className="w-6 h-6 text-slate-600 mb-2 group-hover:text-slate-900" />
-                    <span className="text-sm font-medium text-slate-700">SSH Connect</span>
-                </button>
-            </div>
+
+        <Card title="Quick Actions" className="lg:col-span-2 flex flex-col">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
+            <button
+              onClick={handleRestartXochitl}
+              className="flex flex-col items-center justify-center p-4 border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all group"
+            >
+              <RefreshCw className="w-6 h-6 text-slate-600 mb-2 group-hover:text-slate-900" />
+              <span className="text-sm font-medium text-slate-700">Restart Xochitl</span>
+            </button>
+            <button className="flex flex-col items-center justify-center p-4 border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all group">
+              <Upload className="w-6 h-6 text-slate-600 mb-2 group-hover:text-slate-900" />
+              <span className="text-sm font-medium text-slate-700">Quick Upload</span>
+            </button>
+            <button className="flex flex-col items-center justify-center p-4 border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all group">
+              <Save className="w-6 h-6 text-slate-600 mb-2 group-hover:text-slate-900" />
+              <span className="text-sm font-medium text-slate-700">Backup Metadata</span>
+            </button>
+            <button className="flex flex-col items-center justify-center p-4 border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all group">
+              <TerminalIcon className="w-6 h-6 text-slate-600 mb-2 group-hover:text-slate-900" />
+              <span className="text-sm font-medium text-slate-700">SSH Connect</span>
+            </button>
+          </div>
         </Card>
       </div>
-    </div>
+    </div >
   );
 };

@@ -7,13 +7,15 @@ export const systemAPI = {
   async getStatus() {
     const response = await fetch(`${API_BASE}/status`);
     if (!response.ok) throw new Error('Failed to fetch system status');
-    return response.json();
+    const result = await response.json();
+    return result.data;
   },
 
   async getMonitor() {
     const response = await fetch(`${API_BASE}/monitor`);
     if (!response.ok) throw new Error('Failed to fetch monitor data');
-    return response.json();
+    const result = await response.json();
+    return result.data;
   },
 };
 
